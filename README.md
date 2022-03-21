@@ -8,12 +8,16 @@ This repository also contains ```hot-mapper```, the general implementation of ho
 
 
 ## Article supplementary material
+The code used for the analysis in the article is available in the "analysis" folder. 
+
 ### datasets 
 
 ### folders 
 
 
 ## hot-mapper
+The code to generate a Mapper graph and identify hotspots is available in the "hotmapper" folder. 
+
 ### How to use? 
 
 The code runs in two steps: 
