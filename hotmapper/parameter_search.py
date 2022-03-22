@@ -22,6 +22,7 @@ class Parameter_Search():
         self.runs = runs
         self.parameter_hs = {}
         self.parameter_io = {}
+        self.parameter_lens = []
 
     def build_graphs(self, parameters, visualise = False):
         """Search through the parameter options and build mapper graphs
@@ -77,6 +78,7 @@ class Parameter_Search():
                         if any(check):
                             self.parameter_hs[h] = hotspots # list of hotspots
                             self.parameter_io[h] = [i_param,o_param]
+                            self.parameter_lens = [self.mapper.random_value, self.mapper.random_index]
                             significance = True
 
                 #if hotspots exist in the filter function search

@@ -27,7 +27,7 @@ def range01(x):
 
 def generate_artificial_hotspot(X, radius, random_seed = 42):
     #random sample from X
-    np.random.seed(random_seed) 
+    np.random.seed(random_seed)
     core_sample = X[np.random.randint(X.shape[0], size=1), :]
 
     #generate y labels
@@ -151,6 +151,23 @@ def community_size_samples(community_nodes, node_samples):
     #the size of unique indexes in each community
     ciu_size = [len(set(l)) for l in com_ind]
     return ciu_size
+
+
+def community_samples(community_nodes, node_samples):
+    """Function obtains the id of unique patients in each community
+    partition in the Mapper graph. Node samples is a dictionary of sample
+    indexes for each node"""
+    com_ind = []
+    #for each community
+    for c in community_nodes:
+        #for each node obtain the list of indexes
+        com_ind_sum = [node_samples[n] for n in list(c)]
+        #combine node index lists for each community
+        flat_list = [item for sublist in com_ind_sum for item in sublist]
+        flat_list_unique = list(set(flat_list))
+        com_ind.append(flat_list)
+
+    return com_ind
 
 
 

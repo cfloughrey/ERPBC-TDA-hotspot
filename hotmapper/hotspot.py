@@ -197,7 +197,7 @@ class HotSpot:
             #e.g. user specifies "lower". If the difference between attribute and cluster
             #is above the threshold BUT the cluster is higher than the neighbour, set lower check to True
             #and reject hotspot
-            low_check = (neighbour_att < cluster_att) 
+            low_check = (neighbour_att < cluster_att)
             high_check = (neighbour_att > cluster_att)
             att_check = abs(neighbour_att - cluster_att) < attribute_threshold
 
@@ -208,8 +208,9 @@ class HotSpot:
             if extreme_options[extreme] == True:
                 hotspot["hotspot class"][i] = False
 
-        #hotspot is returned regardless if a hotspot is found to be true or false
+        #hotspot dataframe is returned regardless if a hotspot is found to be true or false
         hotspot["hotspot nodes"] = [hotspot["clusters"][i] for i, x in enumerate(hotspot["hotspot class"]) if x]
+        hotspot["hotspot samples"] = hmu.community_samples(hotspot["hotspot nodes"], self.mapper.samples_in_node)
         return hotspot
 
 
