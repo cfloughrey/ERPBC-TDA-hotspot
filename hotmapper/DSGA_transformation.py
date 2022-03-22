@@ -118,8 +118,6 @@ def threshold_coord(DcT):
 
     #return matrix so patients are rows and genes columns for lens
     Dc_mat_T = Dc_mat.T
-
-
     return Dc_mat_T
 
 
@@ -148,6 +146,9 @@ def DSGA(df_normal, df_tumour, threshold = True):
         Dc_mat = threshold_coord(DcT_df)
 
     print("\n")
-    print(str(Dc_mat.shape[1]) + " co-ordinates are retained")
+    if treshold = True:
+        print(str(Dc_mat.shape[1]) + " co-ordinates are retained")
+    else:
+        print(str(Dc_mat.shape[0]) + " co-ordinates are retained")
 
     return(Dc_mat)

@@ -60,51 +60,6 @@ class Mapper():
 
 
 
-    def transform(self, transformation = "euclidean", normal_X = False, threshold = True):
-        """Transform the data according to a distance metric or disease-specific genomic analysis transformation"
-
-
-        Parameters
-        ----------
-
-        transformation : str,  default: ``euclidean``
-            Either scipy distance metric option to compute a distance matrix of the data
-            Or disease specific genome analysis (DSGA): See "Nicolau, M., Tibshirani, R., Børresen-Dale, A. L., & Jeffrey, S. S. (2007). Disease-specific genomic analysis: identifying the signature of pathologic biology. Bioinformatics, 23(8), 957-965."
-
-        normal_X : numpy array
-            If DSGA transformation is selected, the method requires a dataset of normal tissue expression to build the healthy state model
-
-        threshold : boolean
-            If DSGA transformation is selected, the method requires the user to confirm whether to threshold genes so that only those whic show a significant deviation from the healthy state model are retained
-
-
-        Returns
-        -------
-        X_T : Numpy Array
-            Transformed data
-
-            """
-        if self.text == True:
-            print(F"Transforming dataset by {transformation} distance projection...")
-
-        #if DSGA is selected, retrieve the diseased component of the tumour vectors
-        #specify normal vectors as normal_X
-        if transformation == "DSGA":
-            X_T = DSGA(df_normal = normal_X, df_tumour = self.data, threshold = threshold)
-            return X_T
-
-        #if the metric chosen is standard, check in the list and apply
-        else:
-            try:
-                X_T = distance.squareform(distance.pdist(self.data, metric=transformation))
-                return X_T
-            except ValueError:
-                raise ValueError("Select a scipy distance metric OR run DSGA (disease specific genomic analyis)")
-
-        self.data = X_T
-
-
-
 
     def lens_function(self, selection = None, predefined_lens = None, g = 0.5, r = None, nr = None):
         """Project the data according to the lens function.
