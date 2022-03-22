@@ -7,8 +7,6 @@ This repository also contains ```hot-mapper```, the general implementation of ho
 
 
 ## Article supplementary material
-The code used for the analysis in the article is available in the 'analysis' folder. 
-
 ### Data
 The datasets used are found at the following links: 
 - **METABRIC**:  raw gene expression data in IDAT format. European Genome-Phenome Archive, Dataset ID EGAD00010000162 (https://ega-archive.org/datasets/)
@@ -16,6 +14,9 @@ The datasets used are found at the following links:
 - **GTEX**:  raw gene read counts. Genotype-Tissue Expression Project, 'GTEx\_Analysis\_2017-06-05\_v8\_RNASeQCv1.1.9\_gene\_reads.gct.gz' (https://gtexportal.org/home/datasets)
 
 ### Code 
+The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
+1. 'analysis/python/1-match_genes_in_datasets.py': create tumour and normal datasets with matching genes for metabric and tcga using gtex
+2. 'analysis/python/2-DSGA.py': run disease specific genomic analysis (https://doi.org/10.1093/bioinformatics/btm033) to transform each breast cancer dataset and highlight the extent that diseased tissue deviates from healthy tissue
 
 
 ## hot-mapper
