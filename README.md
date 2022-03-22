@@ -16,7 +16,7 @@ The datasets used are found at the following links:
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
 1. 'analysis/python/1-match_genes_in_datasets.py': create tumour and normal datasets with matching genes for metabric and tcga using gtex
-
+2. 'analysis/python/2-DSGA.py': run disease specific genomic analysis (https://doi.org/10.1093/bioinformatics/btm033) to transform each breast cancer dataset and highlight the extent that diseased tissue deviates from healthy tissue
 
 
 ## hot-mapper
