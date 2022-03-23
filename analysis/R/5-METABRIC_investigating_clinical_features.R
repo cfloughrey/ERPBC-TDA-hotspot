@@ -1,13 +1,9 @@
-library(tidyverse)
 library(openxlsx)
 
 
 #------------------------------------read in files---------------------------------------------#
-X <- "metabric/metabric_dct.csv" #DSGA transformed gene expression data
-lens_genes <- "metabric/lens_genes.csv" #list of genes used to build lens function
 y <- "metabric/hotspot_labels.csv" #binary labels indiciating hotspot class
 clin <- "metabric/clinical.csv" #all clinical features for metabric cohort
-
 
 
 #-------------------------------Chi Square Test--------------------------------------------#
