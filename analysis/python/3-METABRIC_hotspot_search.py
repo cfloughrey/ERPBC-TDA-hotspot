@@ -16,8 +16,8 @@ from lifelines.statistics import logrank_test
 
 
 #------------------------------read in files----------------------------------# 
-X = "metabric_dct.csv" #metabric gene expression after DSGA transformation 
-surv = "10_year_survival.csv" #survival event & time censored to 10 years
+X = "metabric/metabric_dct.csv" #metabric gene expression after DSGA transformation 
+surv = "metabric/10_year_survival.csv" #survival event & time censored to 10 years
 
 #mapper graph will be coloured by survival time censored to 10 years
 time = surv["Time"].to_list() 
@@ -109,14 +109,14 @@ while count < runs:
             
     #------------------------save results to file-----------------------------------#
     else:
-        hotspot_df.to_csv("hotspot_dataframe.csv")
+        hotspot_df.to_csv("metabric/hotspot_dataframe.csv")
     
         #save linear random integers etc from filter function
         #to allow us to receate it later
         r = lens_info[0]
         nr = lens_info[1]
-        np.savetxt("r.txt", r ,delimiter=",")
-        np.savetxt("nr.txt", nr ,delimiter=",")
+        np.savetxt("metabric/r.txt", r ,delimiter=",")
+        np.savetxt("metabric/nr.txt", nr ,delimiter=",")
          
         print(F"Hotspot significantly impacts survival \n search ends.") 
 
