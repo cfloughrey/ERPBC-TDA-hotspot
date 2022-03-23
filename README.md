@@ -19,6 +19,9 @@ The code used for the analysis in the article is available in the 'analysis' fol
 2. 'analysis/python/2-DSGA.py': run disease specific genomic analysis (https://doi.org/10.1093/bioinformatics/btm033) to transform each breast cancer dataset and highlight the extent that diseased tissue deviates from healthy tissue
 3. 'analysis/python/3-METABRIC_hotspot_search.py' : search for a lens that will reveal a hotspot of patients with significantly lower survival in the METABRIC dct dataset
 4. 'analysis/python/4-METABRIC_mapper_graph.py' : recreate the Mapper graph identified from the hotspot search in METABRIC
+5. 'analysis/R/5-METABRIC_investigating_clinical_features.R' : run chi-square tests on clinical features of METABRIC to test if hotspot differs from neighbourhood
+6. 'analysis/R/6-METABRIC_investigate_differentiated_genes.R' : run Kolmogorov-Smirnov tests on METABRIC DcT data to identify which genes differentiate the hotspot group 
+
 
 
 ## hot-mapper
