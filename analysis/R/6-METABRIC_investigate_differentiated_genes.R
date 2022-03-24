@@ -19,4 +19,4 @@ length(genes)
 g.names <- names(genes)
 
 #save results
-write.csv(g.names, "output/kolgorov_genes.csv")
+write.csv(g.names, "kolgorov_genes.csv")
