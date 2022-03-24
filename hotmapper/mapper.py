@@ -60,7 +60,6 @@ class Mapper():
 
 
 
-
     def lens_function(self, selection = None, predefined_lens = None, g = 0.5, r = None, nr = None):
         """Project the data according to the lens function.
 

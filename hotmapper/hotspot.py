@@ -15,7 +15,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 #dendogram
-from scipy.spatial.distance import squareform
+from scipy.spatial import distance
 from scipy.cluster import hierarchy
 
 plt.rcParams.update({'font.size': 22})
@@ -86,8 +86,8 @@ class HotSpot:
             a[v,v] = 0
 
         #construct a single linkage matrix of connected nodes
-        dists = squareform(a,checks = False)
-        Z = hierarchy.linkage(dists, 'single')
+        dists = distance.squareform(a)
+        Z = hierarchy.linkage(dists)
 
         #retain the threshold for edge cutoff and get the edge weight values from the dict
         #find the differences between all the values. We ignore the very last value
@@ -227,6 +227,7 @@ class HotSpot:
 
         #plot figure
         plt.clf()
+        plt.figure()
         plt.rc('font', size=22)          # controls default text sizes
         plt.rc('axes', titlesize=22)     # fontsize of the axes title
         plt.rc('axes', labelsize=16)    # fontsize of the x and y labels
@@ -234,7 +235,7 @@ class HotSpot:
         plt.rc('ytick', labelsize=16)
         plt.rc('legend', fontsize=16) # fontsize of the tick labels
         plt.rc('figure', titlesize=20)  # fontsize of the figure title
-        plt.figure()
+
         plt.title(F"Connectivity of nodes: subgraph {self.subgraph_number}")
         dn = hierarchy.dendrogram(self.Z, color_threshold= self.edge_cutoff, above_threshold_color='grey', labels = labels)
         ax = plt.gca()

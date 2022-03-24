@@ -14,7 +14,6 @@ import hotmapper.hotspot as hmh
 
 
 
-
 #------------------------------read in files----------------------------------# 
 X = "metabric/metabric_dct.csv" #metabric gene expression after DSGA transformation 
 
@@ -47,15 +46,14 @@ mapper.cluster_data(algorithm = hdbscan.HDBSCAN())
 graph = mapper.build_graph(attribute = time)
 
 #visualise graph 
-mapper.visualise(size = 10, style = 2, labels = False, col_legend_title = "survival time \n(months)")
-
+mapper.visualise(size = 10, style = 2, labels = True, col_legend_title = "survival time \n(months)")
 
 
 
 #----------------------confirm presence of hotspots--------------------------------#
 #confirm the presence of a hotspot in node[2]
 graph_components = hmh.Subgraphs(mapper)
-hotspots = graph_components.run_hotspot_search(attribute_threshold = 12, min_sample_size = 30, dendrogram = False)
+hotspots = graph_components.run_hotspot_search(attribute_threshold = 12, min_sample_size = 30)
 print(hotspots)
 
 #save hotspot class 

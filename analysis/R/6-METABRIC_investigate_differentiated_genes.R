@@ -1,5 +1,6 @@
 #------------------------------------read in files---------------------------------------------#
 X <- "metabric/metabric_dct.csv" #DSGA transformed gene expression data
+y <- "metabric/hotspot_labels.csv" #binary labels indiciating hotspot class
 
 
 #-------------------------------KOLGOROV-SMIRNOV--------------------------------------------#
