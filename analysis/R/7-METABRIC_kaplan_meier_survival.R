@@ -1,6 +1,6 @@
 library(survminer)
 library(survival)
-library(stringr)
+
 
 #------------------------------------read in files---------------------------------------------#
 surv <- "metabric/10_year_survival.csv" #survival event & time censored to 10 years"
