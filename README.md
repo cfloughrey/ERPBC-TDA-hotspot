@@ -22,8 +22,8 @@ The code used for the analysis in the article is available in the 'analysis' fol
 5. 'analysis/R/5-METABRIC_investigating_clinical_features.R' : run chi-square tests on clinical features of METABRIC to test if hotspot differs from neighbourhood
 6. 'analysis/R/6-METABRIC_investigate_differentiated_genes.R' : run Kolmogorov-Smirnov tests on METABRIC DcT data to identify which genes differentiate the hotspot group 
 7. 'analysis/R/7-METABRIC_kaplan_meier_survival.R' : Plot kaplan-meier curve comparing survival outcome for hotspot against neighbourhood for METABRIC data 
-8. 'analysis/python/-plot-parameter-results.py' : Plot the log-rank p-value for each combination of Mapper interval and overlap parameters that produced a hotspot 
-
+8. 'analysis/python/8-plot-parameter-results.py' : Plot the log-rank p-value for each combination of Mapper interval and overlap parameters that produced a hotspot 
+9. 'analysis/R/9-TCGA_distance_to_centroid.R' : Identify the group of tcga patients most similar to the metabric hotspot group centroid according to Kolgorov-Smirnov differentially expressed genes
 
 
 ## hot-mapper
