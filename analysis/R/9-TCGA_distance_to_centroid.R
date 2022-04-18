@@ -1,8 +1,3 @@
-#-----------------------------------packages----------------------------------------------#
-library(survminer)
-library(survival)
-library(pheatmap)
-
 #-----------------------------------read in files----------------------------------------#
 #metabric cohort
 X_meta <- "metabric/metabric_dct.csv" #DSGA transformed gene expression data of METABRIC cohort
@@ -11,7 +6,6 @@ genes <- "kolgorov_genes.csv" #names of 112 differentially expressed genes
 
 #tcga cohort
 X_tcga <- "tcga/tcga_dct.csv"#DSGA transformed gene expression data of TCGA cohort
-surv_tcga <- "tcga/10_year_survival.csv" #10 year survival data for TCGA cohort
 
 
 
@@ -30,34 +24,15 @@ limit <- quantile(simlr, 0.05)
 tcga.group <- names(simlr[simlr<limit])
 
 #create a label for the tcga hotspot group
-surv_tcga$Hotspot <- 0
-surv_tcga[tcga.group,"Hotspot"] <- 1
+X_tcga$Hotspot <- 0
+X_tcga[tcga.group,"Hotspot"] <- 1
 
-
-
-
-#---------------------------------Kaplan-Meier curves---------------------------------------------#
-#run survival analysis on the tcga hotspot vs neighbourhood groups
-#fit curves
-fit <- survfit(Surv(Time, Event) ~ Hotspot, data = surv_tcga)
-
-#plot
-p <- ggsurvplot(fit, 
-                data = surv_tcga, 
-                pval = T,
-                mark.time = T,
-                xlab = "Months", 
-                ylab = "Overall survival probability",
-                censor = T,  
-                risk.table = TRUE,
-                conf.int = TRUE,# label curves directly
-                legend.labs =  c("Neighbourhood","Hotspot")) # legend instead of direct label)
-p
-
-#summary of results
-survdiff(Surv(Time, Event) ~ Hotspot, data = surv_tcga)
-table(surv_tcga$Hotspot)
-
-#save new file of TCGA class labels 
-lab <- surv_tcga[,"Hotspot", drop = F]
+#save file 
+lab <- X_tcga[,"Hotspot", drop = F]
 write.csv(lab, "tcga/hotspot_labels.csv")
+
+
+
+
+
+
