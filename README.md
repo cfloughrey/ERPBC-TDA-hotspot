@@ -24,6 +24,7 @@ The code used for the analysis in the article is available in the 'analysis' fol
 7. 'analysis/R/7-METABRIC_kaplan_meier_survival.R' : Plot kaplan-meier curve comparing survival outcome for hotspot against neighbourhood for METABRIC data 
 8. 'analysis/python/8-plot-parameter-results.py' : Plot the log-rank p-value for each combination of Mapper interval and overlap parameters that produced a hotspot 
 9. 'analysis/R/9-TCGA_distance_to_centroid.R' : Identify the group of tcga patients most similar to the metabric hotspot group centroid according to Kolgorov-Smirnov differentially expressed genes
+10. 'analysis/python/10-TCGA_hotspot_search.py' : search for the interval and overlap parameters that reveal the hotspot of patients with significantly lower survival in the TCGA dct dataset, using the same lens function identified from the METABRIC dataset in step 3. 
 12. 'analysis/R/12-TCGA_kaplan_meier_survival.R' : Plot kaplan-meier curve comparing survival outcome for hotspot against neighbourhood for TCGA data 
 
 ## hot-mapper
