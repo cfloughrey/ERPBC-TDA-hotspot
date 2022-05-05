@@ -110,7 +110,7 @@ for i in io_list:
     mapper.cluster_data(algorithm = hdbscan.HDBSCAN())
     
     #build the graph with edges and nodes, coloured by survival time
-    graph = mapper.build_graph(attribute = np.array(s))
+    graph = mapper.build_graph(attribute = np.array(y))
 
 
     #----------------------confirm presence of hotspots--------------------------------#
