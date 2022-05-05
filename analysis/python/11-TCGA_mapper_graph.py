@@ -80,6 +80,7 @@ h_tcga.to_csv("tcga/hotspot_labels.csv")
 
 
 
+
 #-------------------investigate hotspot distance to metabric centroid----------------#
 #we can also visualise graph by the distance to metabric centroid 
 graph = mapper.build_graph(attribute = d)
