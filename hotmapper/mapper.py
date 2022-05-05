@@ -56,7 +56,8 @@ class Mapper():
         self.samplecount_node = {}
         self.graph = None
 
-        print("Initializing Mapper class...")
+        if self.text == True:
+            print("Initializing Mapper class...")
 
 
 
