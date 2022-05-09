@@ -1,7 +1,7 @@
 ## Supplementary material for the article: 
 # *Detecting subgroups of poor survival in estrogen receptor-positive breast cancer using topological data analysis*
 
-Here we provide the code for the methodology of our paper "Detecting subgroups of poor survival in estrogen receptor-positive breast cancer using topological data analysis" (Loughrey, C.F., Maguire, S., Dlotko, P., Orr, N., Jurek-Loughrey, A.). For full details of the method see (link to published paper)
+Here we provide the code for the methodology of our paper "Detecting subgroups of poor survival in estrogen receptor-positive breast cancer using topological data analysis" (Loughrey, C.F., Maguire, S., Dlotko, P., Orr, N., Jurek-Loughrey, A.). 
 
 This repository also contains ```hot-mapper```, the general implementation of hotspot detection on the TDA tool Mapper for applications in bioinformatics. Mapper builds network graphs from a dataset through a combination of clustering and dimensionality reduction. Hotspot detection identifies anomalous interconnected groups of nodes in the graph. In biomedical terms, these hotspots can represent unusual patients subtypes. 
 
