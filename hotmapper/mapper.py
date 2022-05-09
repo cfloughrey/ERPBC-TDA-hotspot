@@ -69,7 +69,6 @@ class Mapper():
 
         selection : str, int, default: ``mean``
             Can be one of several numpy statistical methods ["sum", "mean", "median", "max", "min", "std"] or euclidean distance ["l2norm"]
-            Or sklearn dimensionality reduction model. CUrrent options are ["tsne", "pca"]
             Can be random weighted combination of features - To incorporate all features specificy one of ["linear", "non-linear"]. For a subset of features specify
                 one of ["linear_subset", "non_linear_subset"]. If subset of features define parameter 'g'
 
@@ -101,21 +100,22 @@ class Mapper():
                         "min": np.min,
                         "std": np.std}
 
-        # dimensionality reduction models
-        dimred_lens = {"tsne": manifold.TSNE(n_components=2, random_state=42).fit(self.data),
-                        "pca": decomposition.PCA(n_components=2, random_state=42).fit(self.data)}
-
         #random weighted combinations of features
         weighted_features = {"linear": hm_lens.linear,
                              "non_linear": hm_lens.non_linear,
                              "linear_subset": hm_lens.linear_subset,
                              "non_linear_subset": hm_lens.non_linear_subset}
 
-        #if lens is list of numbers, return the dimensions specified
-        if type(selection) == list:
-            lens = self.data[:,selection]
-            self.lens = lens
-            return lens
+        #if lens is list of numbers, return the dimension specified
+        if isinstance(selection, int):
+            try:
+                if selection in range(0, self.data.shape[1]):
+                    lens = self.data[:,selection]
+                    self.lens = lens
+                    return lens
+            except IndexError:
+                raise IndexError("Input index within boundaries of dataset")
+
 
         #try the input against the lens options provided
         #euclidean norm
@@ -126,12 +126,6 @@ class Mapper():
 
         elif selection in standard_lens:
             lens = standard_lens[selection](self.data, axis=1)
-            self.lens = lens
-            return lens
-
-        elif selection in dimred_lens:
-            dr = dimred_lens[selection]
-            lens = dr.fit_transform(self.data)
             self.lens = lens
             return lens
 

@@ -56,8 +56,6 @@ def colour_by_y(node_index_dictionary, y_values, norm = False):
     else:
         node_values = []
         for node,l in node_index_dictionary.items():
-            print(y_values[index])
-            print(l)
             node_y = [y_values[index] for index in l]
             node_values.append(np.mean(node_y))
 
