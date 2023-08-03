@@ -3,3 +3,4 @@ import hotmapper.random_lens
 import hotmapper.hotspot
 import hotmapper.utils
 import hotmapper.visualisation
+import hotmapper.automated_parameter_search
