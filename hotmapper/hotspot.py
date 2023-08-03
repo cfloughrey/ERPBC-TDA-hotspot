@@ -5,348 +5,307 @@ Created on Tue Sep 15 10:57:31 2020
 @author: ciara
 """
 
+import hotmapper.utils as hmu
+import hotmapper.visualisation as hmv
+import hotmapper.utils as utils
+
 import numpy as np
 import networkx as nx
 import pandas as pd
-import hotmapper.utils as hmu
-
-#plotting
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-#dendogram
+from statsmodels import robust
+from itertools import compress
 from scipy.spatial import distance
 from scipy.cluster import hierarchy
 
+
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 plt.rcParams.update({'font.size': 22})
 
 
 
 
 #----------------------hotspot class--------------------------------#
-class HotSpot:
+class HotspotSearch:
     """ The hotspot class searches a collection of interconnected nodes
     obtained from the Mapper grah, identifying any clusters of nodes that
     present anomalous attribute filter_values
-
-    Parameters
-    ----------
-
-    graph : networkx graph
-        Networkx graph obtained from the Mapper class
-
-    attribute : int or float list
-        Attribute function of predefined values for each node to indicate the colouring of the nodes
         """
 
 
-    def __init__(self, mapper, subgraph, subgraph_number, text = True):
+    def __init__(self, mapper_graph, attribute_function, samples_in_nodes, text = True):
 
         #each subgraph needs to be assigned new labels as an new graph, previously contain
         #labels for original mapper. labels retained in nx attributes'_node'
-        self.mapper = mapper
-        self.old_labels = subgraph
-        self.graph = nx.convert_node_labels_to_integers(subgraph, label_attribute='old_label')
-        self.subgraph_number = subgraph_number
+        self.graph = mapper_graph
+        self.samples_in_nodes = samples_in_nodes
 
-        self.edge_cutoff = None
-        self.Z = [] #linkage matrix
-        self.edge_weight_sorted = {}
+        #if attribute function provided as values for each sample, average per node
+        if len(attribute_function) == samples_in_nodes.shape[0]:
+            self.node_attribute = utils.colour_nodes_by_attribute(samples_in_nodes, attribute_function)
+
+        elif len(attribute_function) == samples_in_nodes.shape[1]: 
+            self.node_attribute = attribute_function
+
+        else:
+            print("attribute size wrong length: must be value for each sample or value for each node")
+
+    def _calculate_edge_weights(self):
+        #assigns edge weights for every pair of edges in the original graph
+        edge_weights = {}
+        graph_copy = self.graph.copy()
+        for e in graph_copy.edges():
+            #find the absolute difference in nodes
+            node_difference = abs(self.node_attribute[e[0]] - self.node_attribute[e[1]])
+            graph_copy[e[0]][e[1]]['weight'] = node_difference #assign as edge weight
+            edge_weights[(e[0],e[1])] = node_difference
+        return edge_weights
 
 
-    def identify_cutoffpoint(self):
+
+    def _seperate_graph_connected_components(self, graph):
+        """Hotspot detection is performed for each seperate component of the graph. These
+        are converted to seperate networkx subgraphs"""
+
+        connected_components = {i:graph.subgraph(c).copy() for i,c in enumerate(nx.connected_components(graph))}
+        return connected_components
+
+
+
+    def _sort_subgraph_edge_weights(self, subgraph, edge_weights):
+
+        # #subset edges and weights to those in the subgraph
+        subgraph_edge_weights = {}
+        for k in subgraph.edges:
+            try:
+                subgraph_edge_weights[k] = edge_weights[k]
+
+            #if edge order has swapped try reversing key
+            except KeyError:
+                k_rev = (k[1],k[0])
+                subgraph_edge_weights[k_rev] = edge_weights[k_rev]
+
+
+        #sort labels in order of ascending weight
+        subgraph_edge_weights_sorted = {k: v for k, v in sorted(subgraph_edge_weights.items(), key=lambda item: item[1])}
+
+        return subgraph_edge_weights_sorted
+
+
+
+
+    def _identify_edge_cut_off(self, subgraph, edge_weights, plot_dendrogram = False):
         """ Define edge weights according to the difference in attribute value between nodes.
             Sort the edge weights, then identify the cut-off point to build the clusters - between the
             edge weights with the largest difference in values"""
 
-        #assigns edge weights for every pair of edges in the original graph
-        edge_w_org = []
-        for e in self.old_labels.edges():
-            #find the absolute difference in nodes
-            abs_diff = abs(self.mapper.attribute[e[0]] - self.mapper.attribute[e[1]])
-            self.old_labels[e[0]][e[1]]['weight'] = abs_diff #assign as edge weight
-            edge_w_org.append(abs_diff)
+        #only define cutoff if more than one node is present, as otherwise no edges exist
 
-        #create a dictionary containing the correct weights for new labels
-        edge_w = {(e[0],e[1]): edge_w_org[i] for i,e in  enumerate(self.graph.edges())}
+        if len(subgraph.nodes) == 1:
+            cutoff = 1
 
-        #sort labels in order of ascending weight
-        ew_sort = {k: v for k, v in sorted(edge_w.items(), key=lambda item: item[1])}
+        else:
+            #return the edge weights found in the new subgraph
+            edge_weights_sorted = self._sort_subgraph_edge_weights(subgraph, edge_weights)
+            #empty matrix of node length x needed for linkage tree
+            a = pd.DataFrame(1.0, index= subgraph.nodes, columns=subgraph.nodes)
 
-        #empty matrix of node length x needed for linkage tree
-        a = np.ones(shape=(len(self.graph.nodes),len(self.graph.nodes)))
+            #construct matrix of nodes and edges
+            for i,j in edge_weights_sorted.items():
+                u = i[0]
+                v = i[1]
+                a.loc[u,v] = j
+                a.loc[v,u] = j
+                a.loc[u,u] = 0.0
+                a.loc[v,v] = 0.0
 
-        #construct matrix of nodes and edges
-        for i,j in ew_sort.items():
-            u = i[0]
-            v = i[1]
-            a[u,v] = j
-            a[v,u] = j
-            a[u,u] = 0
-            a[v,v] = 0
+            #construct a single linkage matrix of connected node
+            dists = distance.squareform(a)
+            Z = hierarchy.linkage(dists)
+            
+            #retain the threshold for edge cutoff and get the edge weight values from the dict
+            #find the differences between all the values. We ignore the very last value
+            edge_differences = list(edge_weights_sorted.values())
+            edge_difference_distances = [j-i for i, j in zip(edge_differences[:-2], edge_differences[1:])]
 
-        #construct a single linkage matrix of connected nodes
-        dists = distance.squareform(a)
-        Z = hierarchy.linkage(dists)
+            #find the maximum difference and the index
+            try:
+                m = max(edge_difference_distances)
+                max_index = edge_difference_distances.index(m)
+                cut_index = max_index
 
-        #retain the threshold for edge cutoff and get the edge weight values from the dict
-        #find the differences between all the values. We ignore the very last value
-        l = list(ew_sort.values())
-        diff = [j-i for i, j in zip(l[:-2], l[1:])]
+            except ValueError:
+                m = 0
+                cut_index = 0
 
-        #find the maximum difference and the index
-        try:
-            m = max(diff)
-            max_index = diff.index(m)
-            cut_index = max_index
-        except ValueError:
-            m = 0
-            cut_index = 0
-        #index at the cutoff value + half way between the difference
-        cutoff = l[cut_index]+ m*0.5
-
-        self.edge_cutoff = cutoff
-        self.Z = Z #linkage matrix
-        self.edge_weight_sorted = ew_sort
+            #index at the cutoff value + half way between the difference
+            cutoff = edge_differences[cut_index]+ m*0.5
 
 
 
-    def cluster_identification(self):
+
+
+            if plot_dendrogram == True:
+                #specify the nodes contained in this subgraph
+                lab = list(subgraph.nodes())
+                graph_colours = {i:v for i,v in enumerate(self.node_attribute)}
+                subgraph_colours = [graph_colours[i] for i in lab]
+
+                #assign matching node colour values to dendrogram labels
+                cmap = mpl.cm.viridis
+                norm = mpl.colors.Normalize(vmin=min(self.node_attribute), vmax=max(self.node_attribute))
+                colouring = cmap(norm((subgraph_colours)))
+                vir_col = {str(v): colouring[i] for i, v in enumerate(lab) }
+
+                dd = hierarchy.dendrogram(Z, 
+                                        labels = list(lab),
+                                        color_threshold = cutoff,
+                                        above_threshold_color = "grey",
+                                        leaf_font_size = 14)
+
+                #add the matching colours to the tick labels
+                ax = plt.gca()
+                xlbls = ax.get_xmajorticklabels()
+                for lbl in xlbls:
+                    lbl.set_color(vir_col[lbl.get_text()])
+                plt.show()
+
+        return cutoff
+
+
+    def _identify_attribute_clusters_below_cutoff(self, subgraph, edge_weights, cutoff):
         """Function seperates the graph into clusters according to the edge
         weight cutoff point. Any edges above this threshold are removed, leaving
         a graph seperated into groups of similar node values"""
 
-        #create a new graph object for each cluster
-        H = nx.convert_node_labels_to_integers(self.graph)
+        #return the edge weights found in the new subgraph
+        edge_weights_sorted = self._sort_subgraph_edge_weights(subgraph, edge_weights)
 
-        #obtain the weight values as list
-        w_s = [v for i,v in self.edge_weight_sorted.items()]
+        #make a copy of the original subgraph
+        graph_copy = subgraph.copy()
 
-        #if edge weight cutoff is supplied
-        w_s_cutoff = [i for i in w_s if i <= self.edge_cutoff]
-        r = len(self.edge_weight_sorted) - len(w_s_cutoff)
-        remove_edges = list(self.edge_weight_sorted.items())[-r:]
+        #identify the any edges above the cut-off
+        remove_edges = [i for i in edge_weights_sorted if edge_weights_sorted[i] > cutoff]
 
         #remove these values from the graph
-        for k,v in remove_edges:
-            H.remove_edge(k[0],k[1])
+        for e1,e2 in remove_edges:
+            graph_copy.remove_edge(e1,e2)
 
         #map between the old and new labels
-        mapping = dict(zip(self.graph.nodes, self.old_labels.nodes))
-        graph_clusters = nx.relabel_nodes(H, mapping, copy = False)
-
-        communities = hmu.obtain_community_partition(graph_clusters)
+        communities = self._seperate_graph_connected_components(graph_copy)
         cluster_nodes = [list(cluster.nodes) for cluster in list(communities.values())]
-
-        return cluster_nodes
-
-
+        
+        return(cluster_nodes)
 
 
-    def cluster_classification(self, clusters, extreme, attribute_threshold, min_sample_size):
-        """Each identified cluster within the subgraph is classified as a hotspot or not
-        according to the minimum sample size and average attribute value compared to the
-        neighbourhood nodes
-            """
+    def _find_attribute_value_of_node_cluster(self, nodes):
+        """Function obtains the mean filter value for each community in the Mapper graph"""
 
+        #for each node obtain the list of indexes
+        node_attribute_values = [self.node_attribute[i] for n,i in enumerate(nodes)]
+        return round(np.mean(node_attribute_values),3)
+
+
+    def _find_no_samples_in_nodes(self, nodes):
+        """Function finds the sample size for specified nodes in the Mapper graph"""
+        return np.sum(self.samples_in_nodes[nodes].max(axis=1))
+
+
+    def _cluster_classification(self, subgraph, community_clusters, attribute_threshold, min_sample_size = 30, attribute_extreme = "either"):
         ## Set up the hotspot dictionary containing information for each subgraph ##
         hotspot = {}
+        hotspot_class = [True]*len(community_clusters)
 
         #find all the nodes in this graph community
-        hotspot["component"] = set(hmu.flatten(clusters))
-        hotspot["clusters"] = clusters
-        hotspot["mean attribute"] = hmu.community_filterval(hotspot["clusters"], self.mapper.attribute)
-        #Size: Nodes have overlapping patients. If you sum each node size the total will be greater than the cohort
-        #the solution is to find the sample size for each cluster of nodes
-        hotspot["size"] = hmu.community_size_samples(hotspot["clusters"], self.mapper.samples_in_node)
-        #define boolean values for whether a hotspot is a local and /or global hotspo
-        hotspot["hotspot class"] = [True]*len(hotspot["clusters"])
-        # Neighbourhood: All remaining nodes from hotspot
-        hotspot["neighbourhood nodes"] = hmu.build_neighbourhood(hotspot)
-        hotspot["neighbourhood size"] = hmu.community_size_samples(hotspot["neighbourhood nodes"], self.mapper.samples_in_node)
-        hotspot["neighbourhood attribute"] = hmu.community_filterval(hotspot["neighbourhood nodes"], self.mapper.attribute)
+        component = subgraph.nodes
+
+        for i,cluster in enumerate(community_clusters):
+
+            #find neighbour nodes - the other remaining nodes in the component
+        #    print(f"cluster {list(cluster)}")
+            neighbour = list(np.setdiff1d(component, cluster))
+
+            #find mean attribute values of cluster and neighbour
+            cluster_mean_attribute = self._find_attribute_value_of_node_cluster(cluster)
+            neighbour_mean_attribute = self._find_attribute_value_of_node_cluster(neighbour)
+        #    print(f"mean attribute: \nhotspot {cluster_mean_attribute} neighbours {neighbour_mean_attribute}\n ")
+            #find sample size of cluster and neighbour
+            cluster_sample_size = self._find_no_samples_in_nodes(cluster)
+            neighbour_sample_size = self._find_no_samples_in_nodes(neighbour)
+        #    print(f"mean size: \nhotspot {cluster_sample_size} neighbours {neighbour_sample_size}\n ")
+
+            # CHECK 1 - Size of samples in the cluster is sufficiently larger than threshold
+            if cluster_sample_size < min_sample_size:
+            #    print("Size of samples in the cluster is sufficiently lower than threshold")
+                hotspot_class[i] = False
 
 
-
-        ## CHECK 1 - Size of samples in the cluster is sufficiently large ##
-        #if the size of the cluster is less than a predefined threshold
-        #classify it as a non-hotspot and remove it from C
-        for i,c in enumerate(hotspot["size"]):
-            if c < min_sample_size:
-                hotspot["hotspot class"][i]=False
+            # CHECK 2 - Size of samples in the cluster is smaller than neighbourhood
+            mad_threshold = robust.mad([cluster_sample_size,neighbour_sample_size], c=1)
+            if (neighbour_sample_size - cluster_sample_size) < mad_threshold:
+            #    print("# Size of samples in the cluster is larger than neighbourhood")
+                hotspot_class[i] = False
 
 
-        ## CHECK 2 - Size of samples in the cluster is smaller than neighbourhood ##
-        #calculate the threshold of the clusters
-        #m1 is the threshold based on median absolute deviation for the community sizes
-        m1 = hmu.mad(hotspot["size"])
-        #if the S(Nc) - S(C) < MAD threshold then classify as non hotspot
-        for i, cluster_size in enumerate(hotspot["size"]):
-            neighbour_size = hotspot["neighbourhood size"][i]
-            if (neighbour_size - cluster_size) < m1:
-                hotspot["hotspot class"][i] = False
-
-
-        ## CHECK 3 - attribute difference between hotspot and neighbourhood is sufficient ##
-        #If abs(F(C) - F(Nc) < threshold then consider hotspot as False
-        for i, cluster_att in enumerate(hotspot["mean attribute"]):
-            #find the neighbourhood attribute for that cluster
-            neighbour_att = hotspot["neighbourhood attribute"][i]
-
-            #allow the user to specify which range of values to search for
-            #e.g. user specifies "lower". If the difference between attribute and cluster
-            #is above the threshold BUT the cluster is higher than the neighbour, set lower check to True
-            #and reject hotspot
-            low_check = (neighbour_att < cluster_att)
-            high_check = (neighbour_att > cluster_att)
-            att_check = abs(neighbour_att - cluster_att) < attribute_threshold
+            #CHECK 3 - Check the attribute difference between cluster and neighbourhood is large enough
+            #conditional on parameter describing extreme of attribute function to be investigated
+            low_check = (neighbour_mean_attribute < cluster_mean_attribute)
+            high_check = (neighbour_mean_attribute > cluster_mean_attribute)
+            att_check = abs(neighbour_mean_attribute - cluster_mean_attribute) < attribute_threshold
 
             extreme_options = {"lower": any([att_check, low_check]),
                                 "higher": any([att_check, high_check]),
                                 "either": att_check}
 
-            if extreme_options[extreme] == True:
-                hotspot["hotspot class"][i] = False
-
-        #hotspot dataframe is returned regardless if a hotspot is found to be true or false
-        hotspot["hotspot nodes"] = [hotspot["clusters"][i] for i, x in enumerate(hotspot["hotspot class"]) if x]
-        hotspot["hotspot samples"] = hmu.community_samples(hotspot["hotspot nodes"], self.mapper.samples_in_node)
-        return hotspot
+            if extreme_options[attribute_extreme] == True:
+            #    print(" attribute difference between cluster and neighbourhood is not large enough")
+                hotspot_class[i] = False
 
 
-
-
-    def plot_dendrogram(self,  labels = None):
-        """Plot the dendogram illustrating at what edge weight value do nodes become
-        connected. Nodes are coloured by attribute value"""
-
-        #obtain the hex colours of nodes to assign colours to labels
-        cmap = mpl.cm.viridis
-        norm = mpl.colors.Normalize(vmin=min(self.mapper.attribute), vmax=max(self.mapper.attribute))
-        col_hex = [mpl.colors.to_hex(c, keep_alpha=False) for c in cmap(norm((self.mapper.attribute)))]
-
-        #plot figure
-        plt.clf()
-        plt.figure()
-        plt.rc('font', size=22)          # controls default text sizes
-        plt.rc('axes', titlesize=22)     # fontsize of the axes title
-        plt.rc('axes', labelsize=16)    # fontsize of the x and y labels
-        plt.rc('xtick', labelsize=16)    # fontsize of the tick labels
-        plt.rc('ytick', labelsize=16)
-        plt.rc('legend', fontsize=16) # fontsize of the tick labels
-        plt.rc('figure', titlesize=20)  # fontsize of the figure title
-
-        plt.title(F"Connectivity of nodes: subgraph {self.subgraph_number}")
-        dn = hierarchy.dendrogram(self.Z, color_threshold= self.edge_cutoff, above_threshold_color='grey', labels = labels)
-        ax = plt.gca()
-        ax.tick_params(axis='x', labelsize=16)
-        xlbls = ax.get_xmajorticklabels()
-        for lbl in xlbls:
-            lbl.set_color(col_hex[int(lbl.get_text())])
-        plt.show()
-
-        return dn
+        return list(compress(community_clusters, hotspot_class))
 
 
 
 
+    def search_graph(self, attribute_threshold, min_sample_size = 30, attribute_extreme = "either", plot_dendrogram = False):
+        #calculate the weight of the edges as the difference in attribute between the nodes
+        edge_weights = self._calculate_edge_weights()
+        
+        #identify subgraphs of connected components in networkx graph
+        subgraphs = self._seperate_graph_connected_components(self.graph)
+        
+
+        #for each subgraph identify the cut-off point between edges
+        subgraph_cutoffs = [self._identify_edge_cut_off(subgraphs[i], edge_weights, plot_dendrogram = plot_dendrogram) for i in subgraphs]
+
+        #identify the community clusters in the graph that lie below the attribute cut-off
+        community_cluster_nodes = [self._identify_attribute_clusters_below_cutoff(subgraphs[i], edge_weights, subgraph_cutoffs[i]) for i in subgraphs ]
+
+        #classify each commmunity cluster in the graph as a hotspot or non-hotspot
+        hotspot_clusters = [self._cluster_classification(subgraphs[i], community_cluster_nodes[i], attribute_threshold, min_sample_size, attribute_extreme) for i in subgraphs]
+
+        #return flat list of hotspot nodes from all clusters in all components
+        hotspot_nodes = [nodes for component in hotspot_clusters for nodes in component ]
+        self.hotspots = hotspot_nodes
+
+        return hotspot_nodes
 
 
 
-
-
-#--------------- RUN HOTSPOT DETECTION FOR EACH COMPONENT ----------------------
-class Subgraphs:
-    """This class contains all the connected component subgraphs of the original
-     mapper graph as seperate entities. Hotspot detection will be run on each component
-
-    Parameters
-    ----------
-
-    graph : networkx graph
-        Networkx graph obtained from the Mapper class
-
-    attribute : int or float list
-        Attribute function of predefined values for each node to indicate the colouring of the nodes
-        """
-
-    def __init__(self, mapper, text = True):
-
-        #We seperate the mapper class into the interconnected subgraphs (S)
-        self.mapper = mapper
-        self.subgraphs = hmu.obtain_community_partition(mapper.graph)
-        self.text = text
-
-    def run_hotspot_search(self, attribute_threshold, min_sample_size = 30, extreme = "either", dendrogram = False):
-        """run a search for hotspots of nodes on each connected subgraph.
-
-        Parameters
-        ----------
-
-        attribute_threshold : int, float
-            Value specifying the threshold at which to accept a hotspot. If the difference in
-            attribute value between a group of nodes is larger than this (absolute) threshold
-            in comparison to their neighbours, then accept as a hotspot.
-
-        extreme : ["lower","higher", "none"], default: ```either```
-            Whether to specify which extremity of the attribute function to search for hotspots
-            Default is either high or low attribute hotspot
-
-        min_sample_size : int, default: ```30```
-            The minimum number of samples within a group of nodes to be confirmed as a hotspot.
-            Default is 30
-
-        dendogram : boolean, default: ```False```
-            If set to true, plots a the dendrogram of connections between nodes seperated
-            by attribute values
-
-
-        Returns
-        ----------
-        hotspots : dictionary
-            Returns a dictionary of hotspots found within each subgraph
-            """
-
-        if self.text == True:
-            print("Searching for hotspots within the subgraphs...")
-
-        #Run hotspot search within each subgraph if the subgraph has more than 2 nodes
-        hotspot_collection = {}
-        for i in self.subgraphs:
-            graph = self.subgraphs[i]
-            node_no = len(list(graph.nodes))
-            subgraph_number = i
-
-            if node_no > 2:
-                #initialise hotspot class
-                hotspot = HotSpot(self.mapper, graph, subgraph_number)
-
-                # Step 1 - identify the hotspots in the graph
-                hotspot.identify_cutoffpoint()
-                clusters = hotspot.cluster_identification()
-
-                #Step 2 - Classify clusters as hotspot or not
-                hotspot_clusters = hotspot.cluster_classification(clusters,
-                                                                  extreme,
-                                                                  attribute_threshold,
-                                                                  min_sample_size = int(min_sample_size))
-                hotspot_collection[i] = hotspot_clusters
-
-                #plot dendogram if specified
-                if dendrogram == True:
-                    hotspot.plot_dendrogram(labels = list(graph.nodes))
-
-            else:
-                pass
-
-        #return the hotspot nodes in the graph
-        if self.text == True:
-            for i in hotspot_collection:
-                check = hotspot_collection[i]['hotspot class']
-                if any(check):
-                    print(F"Hotspots found in subgraph {i}: nodes {hotspot_collection[i]['hotspot nodes']}")
-                else:
-                    print(F"No hotspots present in subgraph {i}")
-
-        hotspot_df = pd.DataFrame(hotspot_collection)
-        return hotspot_df
+    def visualise_hotspots_in_graph(self, size = 10, style = 1, labels = False):
+        #draw graph highlighting all hotspot nodes that may be present in each components
+        #draw as seperate graphs
+        for hotspot_nodes in self.hotspots:
+            #for hotspot_nodes in component:
+            print(hotspot_nodes)
+            hmv.draw_graph(mapper_graph = self.graph,
+                          attribute_function = self.attribute_function,
+                          samples_in_nodes = self.samples_in_nodes,
+                          hotspot_nodes = hotspot_nodes,
+                          size = size,
+                          style = style,
+                          labels = labels)

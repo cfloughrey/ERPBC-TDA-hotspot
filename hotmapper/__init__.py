@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jul 22 10:04:41 2020
-
-@author: ciara
-"""
-
-
+import hotmapper.mapper
+import hotmapper.random_lens
+import hotmapper.hotspot
+import hotmapper.utils
+import hotmapper.visualisation

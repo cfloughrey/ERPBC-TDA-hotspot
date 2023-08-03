@@ -1,30 +1,128 @@
 
 import numpy as np
+import pandas as pd
 import sklearn.cluster as sklc
 from sklearn import manifold, decomposition
 import networkx as nx
 
-#plotting
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
 #supporting python scripts
-from hotmapper.DSGA_transformation import DSGA
-import hotmapper.feature_combination_lens as hm_lens
-import hotmapper.utils as hm_utils
-from hotmapper.covering import Cover
-from hotmapper.clustering import Cluster
-
+import hotmapper.utils as utils
 #single linkage dendogram
 from scipy.spatial import distance
 
-plt.rcParams.update({'font.size': 22})
 
 
 
 
 
-class Mapper():
+
+def _build_cover_on_lens_function(data, lens_function, intervals, overlap):
+    """Build a cover by dividing the lens into overlapping intervals and retrieve
+    the samples contained in each interval"""
+
+    #find the range of the lens function
+    lens_min = np.amin(lens_function)
+    lens_max = np.amax(lens_function)
+
+    #calculate the size of each interval
+    interval_length = (lens_max - lens_min) / (((intervals-1)  *  (1 - overlap)) + 1)
+
+    #the number of samples in the dataset
+    no_samples_in_data = np.array(range(data.shape[0]))
+
+    #these are the fundamental properties of the intervals
+    interval_samples = [False for i in range(intervals)]
+    samples_in_interval = {}
+    interval_sets = []
+
+    for i in range (0, intervals):
+        #the starting point of each interval is the start of the lens function
+        ai = lens_min + (i * interval_length) * (1 - overlap)
+        bi = ai + interval_length
+        interval_sets.append([ai,bi])
+        #for each point, assign it to an interval if the function value
+        #of this point lies between interval start and end points
+        points_in_set = ((ai <= lens_function) & (lens_function <= bi))
+        samples = no_samples_in_data[points_in_set]
+        samples_in_interval[i] = np.unique(samples)
+
+
+    return samples_in_interval, interval_sets
+
+
+
+def _minimum_samples_for_clustering_algorithm(clustering_algorithm):
+    """ clustering algorithms can set the minimum number of clusters
+    #and will throw up an error if there are too little samples in cluster
+    # n_clusters = agglo,  min_cluster_size = hdbscan. Can add more if necessary"""
+    algorithm_parameters = clustering_algorithm.get_params()
+    algorithm_minimum = 2
+    options = ["n_clusters", "min_cluster_size"]
+    for setting in algorithm_parameters:
+        if setting in options:
+            algorithm_minimum = algorithm_parameters[setting]
+
+    return algorithm_minimum
+
+
+
+def _cluster_data_in_intervals(data, intervals, clustering_algorithm, samples_in_interval):
+    """Perform clustering within each interval on the data in the original space.
+    These clusters form nodes in the graph, and overlapping clusters are reperesented
+    by edges. """
+
+    cluster_samples_in_interval = {}
+    n = 0 #n is the number of clusters at the start
+    n_i = 0 # n_i is the number of clusters generated in that interval set
+    min_samples_in_cluster = _minimum_samples_for_clustering_algorithm(clustering_algorithm)
+    #for each interval, if there is more than two data points in that interval
+    #Fit a clustering algorithm to those datapoints
+    for i in range(0, intervals):
+        #access the unique samples within each interval
+        samples = samples_in_interval[i]
+        points =  data[samples]
+
+        #THIS SETS THE MIMINMUM NUMBER OF SAMPLES IN A NODE - we lose intervals if we do not incorporate nodes
+        if len(samples) > min_samples_in_cluster:
+            cl = clustering_algorithm.fit(points)
+            c_i = [samples[np.where(cl.labels_ == label)] for label in set(cl.labels_)]
+            cluster_samples_in_interval[i] = c_i
+        n =  n + n_i
+    return cluster_samples_in_interval
+
+
+#
+def _convert_sampleID_dict_to_matrix(data, ID_dictionary):
+    mtx = pd.DataFrame(0, index=np.arange(len(data)), columns=ID_dictionary.keys())
+    for node in ID_dictionary:
+        node_columns = mtx[node]
+        samples = ID_dictionary[node]
+        node_columns[samples] = 1
+    return mtx
+
+
+def _build_cluster_index_labels(samples_in_clusters):
+    #samples in clusters is composed of = [interval 0: [[samples in cluster 0][samples in cluster 1]]] etc..
+    #return clusters_dict, composed of [interval 0 : [0,1], interval 1 : [2, 3] etc...]
+    count = 0
+    clusters_dict = {}
+
+    for k,v in samples_in_clusters.items():
+        start = count
+        clusters_list = []
+        for i, samples in enumerate(v):
+            clusters_list.append(count)
+            count += 1
+        clusters_dict[k] = clusters_list
+    return clusters_dict
+
+
+
+
+
+
+
+class MapperGraph():
     """ The Mapper class builds a network graph from data. The workflow allows you to:
             1. Transform the dataset
             2. Construct a lens function to project the data to a lower dimension
@@ -33,213 +131,58 @@ class Mapper():
             5. Construct a graph from the clustering
             6. Visualise the graph using networkx
 
-        Parameters
-        ----------
-
-        X : numpy array
-            The data to build the graph on
             """
 
 
-    def __init__(self, X, text = True):
+    def __init__(self, data, lens_function, intervals, overlap, clustering_algorithm, text = True):
 
-        self.data = X
+        self.data = data
+        self.lens_function = lens_function
+        self.intervals = intervals
+        self.overlap = overlap
+        self.clustering_algorithm = clustering_algorithm
         self.text = text
-
-        self.lens = None
-        self.cover = None
-        self.clustering = None
-        self.random_value = []
-        self.random_index = []
-        self.node_dict = {}
-        self.samples_in_node = {}
-        self.samplecount_node = {}
-        self.graph = None
 
         if self.text == True:
             print("Initializing Mapper class...")
 
 
 
-    def lens_function(self, selection = None, predefined_lens = None, g = 0.5, r = None, nr = None):
-        """Project the data according to the lens function.
+    def build_graph(self):
+        """This involves two steps - build a cover on the lens function to divide it into overlapping intervals, then
+        clustering in each interval on the original point cloud. The networkx graph is built by converting the clusters
+        to nodes and edges are formed when two clusters have overlapping samples.  """
 
-        Parameters
-        ----------
 
-        selection : str, int, default: ``mean``
-            Can be one of several numpy statistical methods ["sum", "mean", "median", "max", "min", "std"] or euclidean distance ["l2norm"]
-            Can be random weighted combination of features - To incorporate all features specificy one of ["linear", "non-linear"]. For a subset of features specify
-                one of ["linear_subset", "non_linear_subset"]. If subset of features define parameter 'g'
-
-        g : float
-            Specify the fraction of features to subset the random weighted combination of feature lens function (e.g. 0.5 = 50% of features used to build lens)
-
-        Returns
-        -------
-        lens : Numpy Array
-            Transformed data
-
-        """
         if self.text == True:
-            print(F"Projecting data across {selection} lens...")
+            print("Build cover...")
+        samples_in_intervals, interval_sets = _build_cover_on_lens_function(self.data, self.lens_function, self.intervals, self.overlap)
 
-        #predetermined lens
-        try:
-            if predefined_lens is not None:
-                self.lens = predefined_lens
-                return predefined_lens
-        except ValueError:
-            raise ValueError("If input is own lens options, size of lens must equal number of samples")
-
-        #standard numpy operations
-        standard_lens = {"sum": np.sum,
-                        "mean": np.mean,
-                        "median": np.median,
-                        "max": np.max,
-                        "min": np.min,
-                        "std": np.std}
-
-        #random weighted combinations of features
-        weighted_features = {"linear": hm_lens.linear,
-                             "non_linear": hm_lens.non_linear,
-                             "linear_subset": hm_lens.linear_subset,
-                             "non_linear_subset": hm_lens.non_linear_subset}
-
-        #if lens is list of numbers, return the dimension specified
-        if isinstance(selection, int):
-            try:
-                if selection in range(0, self.data.shape[1]):
-                    lens = self.data[:,selection]
-                    self.lens = lens
-                    return lens
-            except IndexError:
-                raise IndexError("Input index within boundaries of dataset")
-
-
-        #try the input against the lens options provided
-        #euclidean norm
-        elif selection == "l2norm":
-            lens = hm_utils.norm(2, 1, self.data)
-            self.lens = lens
-            return lens
-
-        elif selection in standard_lens:
-            lens = standard_lens[selection](self.data, axis=1)
-            self.lens = lens
-            return lens
-
-        elif "subset" in selection:
-            lens, r, nr = weighted_features[selection](self.data, g,r,nr)
-            self.random_value = r
-            self.random_index = nr
-            self.lens = lens
-            return lens
-
-        else:
-            try:
-                lens, r = weighted_features[selection](self.data, r)
-                self.random_value = r
-                self.lens = lens
-                return lens
-
-            except ValueError:
-                raise ValueError("Lens must be valid option. See documentation for more information")
-
-
-
-    def covering(self, intervals = 10, overlap = 0.2):
-        """Build a cover of the lens function. Currrently this implementatation only accepts 1-D lens to build the cover.
-        The cover deconstructs the lens into overlapping intervals.
-
-        Parameters
-        ----------
-
-        intervals : int, default: ``10``
-            Number of sections to divide the lens function into
-
-        overlap : float, default: ``0.2``
-            Fraction of overlap between the intervals of the lens function
-
-        Returns
-        -------
-
-        cover : dictionary
-            Keys contain the split of lens into interval range
-            Values contain the original data points contained in each interval
-
-            """
         if self.text == True:
-            print(F"Building cover over lens of {intervals} intervals with {overlap * 100}% overlap")
-
-        #The mapper class function accesses the Cover() class in a seperate script
-        #this allows me to contain all the attributes for the cover together
-        cover =  Cover(self.data, self.lens, intervals, overlap)
-        cover.build_cover()
-
-        self.cover = cover
-
-
-
-    def cluster_data(self, algorithm = sklc.AgglomerativeClustering()):
-        """Peform clustering on the data points contained within each interval.
-
-        Parameters
-        ----------
-
-        algorithm : clustering algorithm, default: ``sklc.AgglomerativeClustering()``
-            Algorithm by which to cluster the samples.
-            Default is sklearn agglomerative hierarchical clustering
-
-            """
-        if self.text == True:
-            print(F"Run clustering algorithm '{algorithm}' within across the cover...")
-
-        #The mapper class function accesses the Cover() class in a seperate script
-        #this allows me to contain all the attributes for the cover together
-        clusterclass =  Cluster(self.cover)
-        clusterclass.run_clustering_algorithm(algorithm)
-
-        self.clustering = clusterclass
-
-
-
-    def build_graph(self, attribute):
-        """Build a graph on the dataset where a node is constructed for each
-        cluster and edges formed between clusters with overlapping samples
-
-
-        Parameters
-        ----------
-        attribute : int or float list
-            Attribute function of predefined values for each node to indicate the colouring of the nodes
-
-        Returns
-        -------
-
-        G : networkx graph
-            Returns an undirected network graph. Nodes represent clusters of samples and edges represent overlapping clusters
-
-            """
-        if self.text == True:
-            print("Building graph...")
+            print("Build clusters...")
+        samples_in_clusters = _cluster_data_in_intervals(self.data, self.intervals, self.clustering_algorithm, samples_in_intervals)
 
         #networkx graph class
         G = nx.Graph()
-
         node = 0
         node_dict = {}
         samples_in_node = {}
-        samplecount_node = {}
 
+        if self.text == True:
+            print("Build graph...")
         #construct a graph with a vertex for each cluster
         #access the samples in each cluster in each interval to build a node
-        for i in self.clustering.cluster_count_in_interval:
+        #samples in clusters is composed of = [interval 0: [[samples in cluster 0][samples in cluster 1]]] etc..
+        node_count_in_intervals = {}
+        nodes_in_intervals = _build_cluster_index_labels(samples_in_clusters)
+        for i in samples_in_clusters:
+            #create dictionary describing nodes in interval_sets
+            node_count_in_intervals[i] = len(samples_in_clusters[i])
             #for each cluster in that interval
-            for j in range(0, self.clustering.cluster_count_in_interval[i]):
+            for j in range(0, len(samples_in_clusters[i])):
                 #define the node index values simultaneously
-                samples_in_node[node] = self.clustering.cluster_samples_in_interval[i][j]
-                samplecount_node[node] = len(np.unique(self.clustering.cluster_samples_in_interval[i][j]))
+                samples_in_node[node] = samples_in_clusters[i][j]
+                #samplecount_node[node] = len(np.unique(samples_in_clusters[i][j]))
                 #add the node of samples to the graph
                 G.add_node(node)
                 #build the node dictionary to understand which intervals and clusters the nodes correspond to
@@ -247,13 +190,14 @@ class Mapper():
                 node = node + 1
 
 
+
         #to build an edge check for overlapping samples between neighbouring nodes
         #define the key list to iterate through dict and check neighbouring intervals
-        keyList=sorted(self.clustering.cluster_samples_in_interval.keys())
+        keyList=sorted(samples_in_clusters.keys())
         for i, l in enumerate(keyList[:-1]):
             l_neighbour = keyList[i+1]
-            cluster_points = self.clustering.cluster_samples_in_interval[l]
-            cluster_points_neighbour = self.clustering.cluster_samples_in_interval[l_neighbour]
+            cluster_points = samples_in_clusters[l]
+            cluster_points_neighbour = samples_in_clusters[l_neighbour]
 
             for cluster_label, main_cluster in enumerate(cluster_points):
                 for cluster_label_neighbour, neighbour_cluster in enumerate(cluster_points_neighbour):
@@ -261,127 +205,21 @@ class Mapper():
                     if any(point in main_cluster for point in neighbour_cluster):
                         G.add_edge(node_dict[(l,cluster_label)], node_dict[(l_neighbour,cluster_label_neighbour)])
 
-        #assign predefined list for node colour if specified
-        #else colour by lens
-        try:
-            self.attribute = hm_utils.colour_by_y(samples_in_node, attribute)
-        except ValueError:
-            print("Please specify the colouring of the graph")
+
+        #convert samples_in_node from dict with node in keys and samples in values,
+        #to df with nodes in columns and samples in rows and binary values indicating the presence of sample in node
+        #def convert_index_dict_to_matrix():
+        interval_clusters = _convert_sampleID_dict_to_matrix(self.data, samples_in_intervals)
+        node_clusters = _convert_sampleID_dict_to_matrix(self.data, samples_in_node)
 
 
-        self.node_dict = node_dict
-        self.samples_in_node = samples_in_node
-        self.samplecount_node = samplecount_node
+
+
         self.graph = G
+        self.samples_in_nodes = node_clusters
+        self.node_count_in_intervals = node_count_in_intervals
+        self.nodes_in_intervals = nodes_in_intervals
+        self.samples_in_intervals = interval_clusters
+        self.interval_sets = interval_sets
 
         return G
-
-
-
-
-    def visualise(self, style = 1, size = 10, labels = False, col_legend_title = "Legend"):
-        """Visualise the networkx graph.
-
-        Parameters
-        ----------
-
-        style : [1],[2], default: ``1``
-            Selects either fruchterman_reingold_layout from networkx (1) or kamada_kawai_layout (2) to structure the graph
-
-        size : int, default: ``10``
-            Size of node legends specifying the number of samples per nodes
-
-        labels = boolean, default: ``False``
-            Specifies whether to label nodes with number
-
-        col_legend_title = str, default: ```Legend```
-            Labels the attribute legend
-
-            """
-
-        if self.text == True:
-            print("Visualising graph...")
-
-        network_styles = {1: nx.fruchterman_reingold_layout(self.graph, seed=300),
-                          2: nx.kamada_kawai_layout(self.graph)}
-
-        #Plot figure with legend, specifying style
-        cmap = mpl.cm.viridis
-        fig = plt.figure(figsize=(12, 12), constrained_layout=True)
-        pos =  network_styles[style]
-        norm = mpl.colors.Normalize(vmin=min(self.attribute), vmax=max(self.attribute))
-
-        #specify the number of samples in each node according to size attribute
-        nsize = hm_utils.node_size(self.samples_in_node)
-        if size == 0:
-            nodes = nx.draw_networkx_nodes(self.graph,
-                                          pos= pos,
-                                          node_color=cmap(norm((self.attribute))),
-                                          alpha=1)
-        else:
-            nodes = nx.draw_networkx_nodes(self.graph,
-                                          pos= pos,
-                                          node_color=cmap(norm((self.attribute))),
-                                          alpha=1,
-                                          node_size = [size * n for n in nsize])
-
-        nodes.set_edgecolor('grey')
-        nodes.set_linewidth(2)
-        nx.draw_networkx_edges(self.graph,
-                               pos = pos,
-                               width= 3,
-                               alpha = 0.5,
-                               edge_color='dimgray')
-
-
-       #position labels slighter offset to nodes
-        if labels == True:
-            pos_higher = {}
-            off = 0.05  # offset on the y axis
-
-            for k, v in pos.items():
-                pos_higher[k] = (v[0], v[1])
-
-            nx.draw_networkx_labels(self.graph,
-                                    pos_higher,
-                                    font_size=20,
-                                    font_color="black",
-                                    bbox = {"ec": "k", "fc": "white", "alpha": 0.6})
-
-
-        #legend
-        ticks = [min(self.attribute), max(self.attribute)]
-        ax = plt.gca()
-        ax.axis('off')
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm._A = []
-        cax = ax.inset_axes([1.1, 0.05, 0.04, 0.2])
-        cbar = plt.colorbar(sm,cax=cax, ticks=ticks)
-        cbar.ax.set_title(col_legend_title, fontsize = 22, pad = 30)
-        cbar.ax.tick_params(labelsize=22, pad =10, bottom = True)
-
-        #define the size of the node labels and plot as non-existent dots
-        #obtain the 10th, 50th, and 100th percentile
-        legend_n = {int(round(np.percentile(list(self.samplecount_node.values()), 10),0)),
-                    int(round(np.percentile(list(self.samplecount_node.values()), 50),-1)),
-                    int(round(np.percentile(list(self.samplecount_node.values()), 100),-1))}
-
-        for v in legend_n:
-            plt.scatter([],[], s= (size * v), label='{}'.format(v))
-
-        #get the legend handles and arrange to correct order
-        handles,labels = ax.get_legend_handles_labels()
-        handles, labels = zip(*[ (handles[i], labels[i]) for i in sorted(range(len(handles)), key=lambda k: list(map(int,labels))[k])] )
-        ax.legend(handles,labels,loc=2, bbox_to_anchor=(1, 1),fancybox=True, title = "# of samples", labelspacing  = 1.6,frameon=False)
-
-        #set colour of points
-        leg = ax.get_legend()
-        for i in [0,1,2]:
-            try:
-                leg.legendHandles[i].set_color('grey')
-            except Exception:
-                pass
-
-        plt.show()
-
-        self.node_colour_legend = cmap(norm((self.attribute)))

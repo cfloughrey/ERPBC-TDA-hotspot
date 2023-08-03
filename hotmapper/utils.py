@@ -10,13 +10,34 @@ from sklearn.metrics import  silhouette_score
 import numpy as np
 from statistics import mean
 from itertools import chain
+import pandas as pd
+import matplotlib as mpl
+
+def sample_index_in_nodes(node_index_dataframe, node_list):
+    return node_index_dataframe[node_index_dataframe[node_list].max(axis=1) == 1].index
+
+def colour_nodes_by_attribute(node_index_dataframe, attribute, norm = False):
+    """for each node, create a list of the y values for each index"""
+    if norm == True:
+        #normalise y values to range
+        attribute = range01(np.array(attribute))
 
 
+    #the node values are averaged over all patients contained in each node
+    node_values = []
+    for node in node_index_dataframe:
+        index = list(node_index_dataframe[node].loc[node_index_dataframe[node] == 1].index)
+        node_y = [attribute[i] for i in index]
+        node_values.append(np.mean(node_y))
 
-def node_size(node_samples):
-    """Find the number of patients in each node"""
-    size_lst = [len(node_samples[i]) for i in node_samples]
-    return size_lst
+    return node_values
+
+#
+
+def removekey(d, key):
+    r = dict(d)
+    del r[key]
+    return r
 
 
 def range01(x):
@@ -41,25 +62,7 @@ def generate_artificial_hotspot(X, radius, random_seed = 42):
     return y
 
 
-def colour_by_y(node_index_dictionary, y_values, norm = False):
-    """for each node, create a list of the y values for each index"""
-    if norm == True:
-        #normalise y values to range
-        normal_y = range01(np.array(y_values))
 
-        #then perform rest of algorithm
-        node_values = []
-        for node,l in node_index_dictionary.items():
-            node_y = [normal_y[0][index] for index in l]
-            node_values.append(np.mean(node_y))
-
-    else:
-        node_values = []
-        for node,l in node_index_dictionary.items():
-            node_y = [y_values[index] for index in l]
-            node_values.append(np.mean(node_y))
-
-    return node_values
 
 
 def norm(power,mag,matrix):
@@ -76,123 +79,40 @@ def flatten(listOfLists):
     return chain.from_iterable(listOfLists)
 
 
-def mad(arr):
-    """ Median Absolute Deviation: a "Robust" version of standard deviation.
-        Indices variabililty of the sample.
-        https://en.wikipedia.org/wiki/Median_absolute_deviation
-    """
-    arr = np.ma.array(arr).compressed() # should be faster to not use masked arrays.
-    med = np.median(arr)
-    return np.median(np.abs(arr - med))
 
-def obtain_community_partition(G):
-    """create subgraphs for each connected component in the graph"""
-    S = {i:G.subgraph(c).copy() for i,c in enumerate(nx.connected_components(G))}
-    return S
-
-
-def build_neighbourhood(hotspot_dict):
-    """Input a dictionary containing all the nodes in the component and
-    the division of nodes into clusters. Output the global neighbourhood for
-    each cluster"""
-    neighbour = [list(np.setdiff1d(list(hotspot_dict["component"]),c)) for c in hotspot_dict["clusters"]]
-    return neighbour
+def check_hotspot_nodes_in_intervals(mapper, hotspot_nodes):
+    # map  nodes to intervals
+    nodes_to_intervals = {}
+    count = 0
+    while count < mapper.samples_in_nodes.shape[1]:
+        for k,v in mapper.node_count_in_intervals.items():
+            for i in range(0,v):
+                if k in nodes_to_intervals:
+                    nodes_to_intervals[k].append(count)
+                else:
+                    nodes_to_intervals[k] = [count]
+                count =  count + 1
 
 
-def identify_community_neighbours(community_nodes, original_graph):
-    """Function identifies the neighbours for each hotspot community.
-    Returns a list of the neighbour indexes"""
-    neighbours = []
-    #for each community
-    for com in community_nodes:
-        com_n =[]
-        #for each node
-        for node in com:
-            #identify the neighbours in that node
-            node_neighbour = [n for n in original_graph.neighbors(node)]
-            com_n.append(list(node_neighbour))
-        #create list of neighbours
-        neighbours.append(list(com_n))
-    #make a flat set of unique values for each component
-    nghb_f = []
-    for c in neighbours:
-        flat = [item for sublist in c for item in sublist]
-        flat_set = set(flat)
-        nghb_f.append(flat_set)
-    #obtain list of communities and their neighbours
-    com_nghb = [[] for i in range(len(community_nodes))]
+    # count the number of hotspot nodes and non-hotspot nodes in an interval
+    class_count_df = []
+    for k,v in nodes_to_intervals.items():
+        class_count_h = 0
+        class_count_nh = 0
+        for i in v:
+            if i in hotspot_nodes:
+                class_count_h += 1
+            else:
+                class_count_nh += 1
+        class_count_df.append([class_count_nh, class_count_h])
 
-    #for each node in the list of neighbours
-    for i, n in enumerate(nghb_f):
-        #if that node is in one of the communities
-        for j,com in enumerate(community_nodes):
-            if any(item in n for item in com):
-                com_nghb[i].append(j)
-        #remove the hotspot itself
-        if (i in com_nghb[i]):
-            com_nghb[i].remove(i)
-
-    return com_nghb
-
-
-
-def community_size_samples(community_nodes, node_samples):
-    """Function obtains the number of unique patients in each community
-    partition in the Mapper graph. Node samples is a dictionary of sample
-    indexes for each node"""
-    com_ind = []
-    #for each community
-    for c in community_nodes:
-        #for each node obtain the list of indexes
-        com_ind_sum = [node_samples[n] for n in list(c)]
-        #combine node index lists for each community
-        flat_list = [item for sublist in com_ind_sum for item in sublist]
-        com_ind.append(flat_list)
-    #the size of unique indexes in each community
-    ciu_size = [len(set(l)) for l in com_ind]
-    return ciu_size
-
-
-def community_samples(community_nodes, node_samples):
-    """Function obtains the id of unique patients in each community
-    partition in the Mapper graph. Node samples is a dictionary of sample
-    indexes for each node"""
-    com_ind = []
-    #for each community
-    for c in community_nodes:
-        #for each node obtain the list of indexes
-        com_ind_sum = [node_samples[n] for n in list(c)]
-        #combine node index lists for each community
-        flat_list = [item for sublist in com_ind_sum for item in sublist]
-        flat_list_unique = list(set(flat_list))
-        com_ind.append(flat_list)
-
-    return com_ind
-
-
-
-
-def community_filterval(community_nodes, node_filter_values):
-    """Function obtains the mean filter value for each community in the Mapper graph"""
-    com_mean = []
-    #for each community
-    for c in community_nodes:
-        #for each node obtain the list of indexes
-        com_values = [node_filter_values[i] for n,i in enumerate(c)]
-        #combine node index lists for each community
-        val_mean = np.mean(com_values)
-        #append to list
-        com_mean.append(round(val_mean,3))
-    #the size of unique indexes in each community
-    return com_mean
-
-
-
-def cluster_filterval(cluster_nodes, node_filter_values):
-    """Function obtains the mean filter value for each cluster in the Mapper graph"""
-    #for each node obtain the list of indexes
-    com_values = [node_filter_values[i] for n,i in enumerate(cluster_nodes)]
-    #combine node index lists for each community
-    val_mean = np.mean(com_values)
-    #the size of unique indexes in each community
-    return round(val_mean,3)
+    #plot hotspot nodes in intervals
+    class_df = pd.DataFrame(class_count_df, columns = ["Non-Hotspot", "Hotspot"])
+    mpl.style.use('ggplot')
+    ax = class_df.plot.bar(figsize=(10,5),
+                            xlabel='Intervals',
+                            ylabel='Node count',
+                            title  = 'Number of nodes in intervals',
+                            color = ["indigo","yellow"],
+                            stacked = True)
+    ax.legend(loc=2)
