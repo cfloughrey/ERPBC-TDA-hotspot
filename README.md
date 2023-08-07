@@ -14,7 +14,7 @@ The datasets used are found at the following links:
 - **GTEX**:  raw gene read counts. Genotype-Tissue Expression Project, 'GTEx\_Analysis\_2017-06-05\_v8\_RNASeQCv1.1.9\_gene\_reads.gct.gz' (https://gtexportal.org/home/datasets)
 
 ### Code 
-The code used for the analysis in the article is available in the 'analysis' folder. The pipeline of analysis conducted in the article can be found in [Detecting hotspots in ER+ breast cancer using TDA](erpos_tda_data_analysis.md)
+The code used in the article is available in the 'analysis' folder. The pipeline of analysis can be found in [Detecting hotspots in ER+ breast cancer using TDA](erpos_tda_data_analysis.md)
 
 ## hot-mapper
-The code to generate a Mapper graph and identify hotspots is available in the 'hotmapper' folder. For an example analysis see ```toy_example.ipynb```.
+The code to generate a Mapper graph and identify hotspots is available in the 'hotmapper' folder. For an example analysis see [toy demonstration](toy_demonstration.ipynb).
