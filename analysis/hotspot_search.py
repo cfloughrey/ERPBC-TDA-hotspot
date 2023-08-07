@@ -84,7 +84,7 @@ while count < runs:
                 
                 
                 #if any hotspots have lower p-value than 0.001 then results are saved 
-                if pvalue < 0.001:
+                if pvalue < 0.01:
                     #append results to list to build dataframe summarising survival analysis for each hotspot 
                     hotspot_id.append(str(ps[0]) + str(int(ps[1] * 100)) + str(i))
                     hotspot_results = [ps[0], ps[1], p_success[ps][i], sum(y["Hotspot"]), pvalue]
