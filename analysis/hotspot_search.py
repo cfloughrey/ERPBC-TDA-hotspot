@@ -5,7 +5,7 @@ Created on Tue Mar 22 10:32:56 2022
 @author: ciara
 """
 
-import hotmapper.parameter_search as hmps
+import hotmapper as hm 
 import numpy as np
 import pandas as pd
 from sklearn import decomposition, manifold
@@ -26,7 +26,7 @@ time = surv["Time"].to_list()
 
 #----------------------set up parameters----------------------------------# 
 #initialise the search class from the hotmapper module
-search = hmps.Parameter_Search(np.array(X))
+search = hm.parameter_search.Parameter_Search(np.array(X))
 
 #select the parameter options for the search 
 parameters = {"lens_option" : "linear_subset", #50% of features used in lens
