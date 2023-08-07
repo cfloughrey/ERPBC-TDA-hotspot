@@ -1,3 +1,5 @@
+# Detecting hotspots in ER+ breast cancer using TDA
+
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
 1. 'analysis/python/1-match_genes_in_datasets.py': create tumour and normal datasets with matching genes for metabric and tcga using gtex
