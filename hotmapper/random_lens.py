@@ -14,7 +14,6 @@ def Lens(data, nonzero_features = None, weights = None, feature_list = None, wei
     #define the number of features samples used in the data
     #do not perform feature selection unless specified
     total_samples, total_features = data.shape
-    nonzero_features = total_features
 
     #randomly select the subset of features and their corresponding weights
     if weights is None and feature_list is None:
@@ -27,7 +26,7 @@ def Lens(data, nonzero_features = None, weights = None, feature_list = None, wei
         weights = np.random.uniform(low=weight_range[0], high=weight_range[1], size=len(feature_list))
     
     else:
-        nonzero_features = len(feature_list)
+        nonzero_features = total_features
         
     
     #for each sample in the dataset calculate the lens function 
