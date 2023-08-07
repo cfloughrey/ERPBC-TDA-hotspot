@@ -146,7 +146,7 @@ def DSGA(df_normal, df_tumour, threshold = True):
         Dc_mat = threshold_coord(DcT_df)
 
     print("\n")
-    if treshold == True:
+    if threshold == True:
         print(str(Dc_mat.shape[1]) + " co-ordinates are retained")
     else:
         print(str(Dc_mat.shape[0]) + " co-ordinates are retained")
