@@ -5,7 +5,7 @@ Created on Tue Mar 22 10:32:56 2022
 @author: ciara
 """
 
-import hotmapper as hm 
+import hotmapper as hm
 import numpy as np
 import pandas as pd
 from sklearn import decomposition, manifold
@@ -17,28 +17,25 @@ from lifelines.statistics import logrank_test
 
 #------------------------------read in files----------------------------------# 
 X = "metabric/metabric_dct.csv" #metabric gene expression after DSGA transformation 
-surv = "metabric/10_year_survival.csv" #survival event & time censored to 10 years
+rfs = "metabric/10_year_rfs.csv" #relapse free event & time censored to 10 years. 
 
-#mapper graph will be coloured by survival time censored to 10 years
-time = surv["Time"].to_list() 
-
+#define the attribute function as patients who have relapsed before 10 years
+outcome = np.array((rfs['Time']<=120) & (rfs['Event'] == "1:Recurred")).astype(int)
 
 
 #----------------------set up parameters----------------------------------# 
 #initialise the search class from the hotmapper module
-search = hm.parameter_search.Parameter_Search(np.array(X))
+search = hm.automated_parameter_search.Search(np.array(X))
 
 #select the parameter options for the search 
-parameters = {"lens_option" : "linear_subset", #50% of features used in lens
-              "interval_list" : range(10,32,2) , #intervals randing from 10 to 32
-              "overlap_list" : np.linspace(0.1,0.45,8), #overlap ranging from 10% to 45%
-              "clustering_algorithm" : hdbscan.HDBSCAN(), #hdbscan clustering algorithm
-              "attribute_function" : time, #survival time colouring the graph
-              "epsilon" : 12, #12 months difference between hotspot and neighbourhood
-              'min_samples' : 30, #minimum 30 patients in a hotspot 
-              'extreme': "lower"} #specify hotspots with low survival time
-
-
+parameters = {"non_zero_lens_features" : int(X.shape[1]/2), #50\% of non-zero features in the lens fucntion
+              "interval_list" : range(10,32,2) , #no. of interval options
+              "overlap_list" : np.linspace(0.1,0.45,8), #percentage of overlap options
+              "clustering_algorithm" : hdbscan.HDBSCAN(), #keep clustering algorithm consistent 
+              "attribute_function" : outcome, #patients who have relapsed before 10 years
+              "epsilon" : 0.1, #difference in attribute between hotspot and neighbourhood
+              'min_samples' : 30, #minimum sample size for hotspot
+              'extreme': "higher"} #hotspots with higher occurence of relapse
 
 
 #-----------------------------run search----------------------------------#
@@ -55,50 +52,45 @@ while count < runs:
         #mapper graphs are built for each lens and tested for the presence of a hotspot
         search.build_graphs(parameters)
         
-        #all information about hotspots contained in parameter_hs dictionary
-        graph_info = search.parameter_hs
-        
-        #the sucessful parameters contained in parameter_io
-        p_success = search.parameter_io
+        #the sucessful parameters containing hotspots
+        p_success = search.parameters
 
         #the attributes to build the lens function are in parameter_lens
-        lens_info = search.parameter_lens
-
+        weights = search.parameter_lens["weights"]
+        feature_list = search.parameter_lens["feature_list"]
         
         #-----------------------------run survival analysis----------------------------------# 
         survival_results = []
         hotspot_id = []
-        columns = ["graph", "component", "interval", "overlap", "size", "logrank"]
+        columns = ["interval", "overlap", "nodes", "size", "logrank"]
         
         #multiple graphs are generated from the different successful parameter options 
         #the hotspots in each graph are tested for significant survival 
-        for i, graph in graph_info.items():
-            #there can be multiple components in a graph
-            for j, component in enumerate(graph.loc['hotspot samples']):
-                #for each hotspot in a graph component
-                for k, hotspot_samples in  enumerate(component):
-                    
-                    #seperate the er+ cohort into hotspot and global neighbourhood
-                    y = pd.DataFrame([0] * len(X.index), columns = ["Hotspot"], index = X.index)
-                    X_H = X.iloc[hotspot_samples]
-                    y.loc[X_H.index,"Hotspot"] = 1
-                    
-                    #apply log rank test to each hotspot division 
-                    hot = (y["Hotspot"] == 1)
-                    T = surv["Time"]
-                    E = surv["Event"]
-            
-                    lr = logrank_test(T[hot], T[~hot], event_observed_A=E[hot], event_observed_B=E[~hot], alpha=99)
-                    pvalue = lr.p_value
-                    
-                    
-                    #if any hotspots have lower p-value than 0.001 then results are saved 
-                    if pvalue < 0.001:
-                        #append results to list to build dataframe summarising survival analysis for each hotspot 
-                        hotspot_id.append(str(i) + str(j) + str(k))
-                        hotspot_results = [i, j, p_success[i][0], p_success[i][1], sum(y["Hotspot"]), pvalue]
-                        survival_results.append(hotspot_results)
-                        signficance = True
+        for ps, collection in search.parameter_samples.items():
+            for i, hotspot_samples in enumerate(collection):
+                hotspot_results = []
+                #seperate the er+ cohort into hotspot and global neighbourhood
+                y = pd.DataFrame([0] * len(X.index), columns = ["Hotspot"], index = X.index)
+                X_H = X.iloc[hotspot_samples]
+                y.loc[X_H.index,"Hotspot"] = 1
+                
+                #apply log rank test to each hotspot division 
+                hot = (y["Hotspot"] == 1)
+                T = rfs["Time"]
+                E = rfs["Event"]
+        
+                lr = logrank_test(T[hot], T[~hot], event_observed_A=E[hot], event_observed_B=E[~hot], alpha=99)
+                pvalue = lr.p_value
+                
+                
+                #if any hotspots have lower p-value than 0.001 then results are saved 
+                if pvalue < 0.05:
+                    #append results to list to build dataframe summarising survival analysis for each hotspot 
+                    hotspot_id.append(str(ps[0]) + str(int(ps[1] * 100)) + str(i))
+                    hotspot_results = [ps[0], ps[1], p_success[ps][i], sum(y["Hotspot"]), pvalue]
+                    survival_results.append(hotspot_results)
+                    signficance = True
+
                     
         #if any hotspots have lower p-value than 0.001 then search ends
         hotspot_df = pd.DataFrame(survival_results, columns = columns, index = hotspot_id)
@@ -111,14 +103,11 @@ while count < runs:
     else:
         hotspot_df.to_csv("metabric/hotspot_dataframe.csv")
     
-        #save linear random integers etc from filter function
-        #to allow us to receate it later
-        r = lens_info[0]
-        nr = lens_info[1]
-        np.savetxt("metabric/r.txt", r ,delimiter=",")
-        np.savetxt("metabric/nr.txt", nr ,delimiter=",")
+        #save weights and order of features from randomly generated lens function to allow us to receate it later
+        np.savetxt("metabric/weights.txt", weights ,delimiter=",")
+        np.savetxt("metabric/feature_list.txt", feature_list ,delimiter=",")
          
-        print(F"Hotspot significantly impacts survival \n search ends.") 
+        print("Hotspot significantly impacts survival \n search ends.") 
 
         break
     
