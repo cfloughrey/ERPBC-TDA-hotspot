@@ -1,4 +1,13 @@
 # Detecting hotspots in ER+ breast cancer using TDA
+The original datasets used in the analysis are publically available and described in the [main description](README.md). To demonstate the order of the scripts used in the analysis we will use example data.  
+
+## Pre-process files for Disease Specific Genomic Analysis (DSGA)
+The DSGA method uses a dataset of tumour samples and a dataset of normal tissue samples as input. Run [1-match_genes_in_datasets.py](ERPBC-TDA-hotspot/analysis/1-match_genes_in_datasets.py) 
+
+
+#18930 genes, 1429 er+ bc patients
+tcga = "tcga/gene_expression.csv" #19957 genes, 790 er+ bc patients
+gtex = "gtex/gene_expression.csv" #36043 genes, 169 healthy patients
 
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
