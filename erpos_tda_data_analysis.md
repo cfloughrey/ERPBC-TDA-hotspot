@@ -14,12 +14,17 @@ After preproccessing for DSGA, the tumour and normal dataset pairs are:
 + Validation pair = 18406 genes
 
 ## Disease Specific Genomic Analysis (DSGA)
-We run [DSGA](ERPBC-TDA-hotspot/analysis/DSGA.py) to build the disease component (DcT) of the tumour dataset by comparing it against the healthy state model representing as the dataset of normal tissue. In the discovery dataset we simultaneously perform feature reduction. In the validation DcT dataset we skip independent feature reduction and instead retain the gene features kept in the discovery DcT dataset. 
+We run [DSGA.py](ERPBC-TDA-hotspot/analysis/DSGA.py) to build the disease component (DcT) of the tumour dataset by comparing it against the healthy state model representing as the dataset of normal tissue. In the discovery dataset we simultaneously perform feature reduction. In the validation DcT dataset we skip independent feature reduction and instead retain the gene features kept in the discovery DcT dataset. 
 
 The output DcT gene expression datasets are: 
 + Discovery dataset (METABRIC) = 575 genes for 1429 ER+ Breast Cancer (BC) patients
 + Discovery dataset (TCGA) = 575 genes for 790 ER+ BC patients
 
+
+## Searching for hotspots in the discovery dataset
+Run [hotspot_search.py](ERPBC-TDA-hotspot/analysis/hotspot_search.py) to search for a hotspot of patients experiencing relapse before 10 years. We search for a hotspot in Mapper graphs generated from the discovery METABRIC DcT dataset across a predefined range of parameter options. If a hotspot fitting the conditions is found for any combination of Mapper parameters, we investigate the survival outcome for the group of patients contained in the hotspot against the rest of the cohort using log rank tests. If a hotspot group exists that has significantly higher occurence of relapse, we save the settings used to generate the lens function so results can be replicated.
+
+## Build the Mapper graph
 
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
