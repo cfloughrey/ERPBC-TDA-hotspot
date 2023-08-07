@@ -6,7 +6,7 @@ Created on Tue Mar 22 09:52:14 2022
 """
 
 
-from hotmapper.DSGA_transformation import DSGA
+from hotmapper as hm 
 import numpy as np
 import pandas as pd
 
@@ -24,10 +24,10 @@ tcga_n = "tcga_normal_matched.csv" #168 patients, 18406 genes
 #-----------run disease specific genomic analysis -----------------------------# 
 #run DSGA to build the disease component transformation of the dataset
 #threshold METABRIC DcT to those that show a signfiicant deviation
-metabric_dct = DSGA(df_normal = metabric_n, df_tumour = metabric_t, threshold = True) #575 genes
+metabric_dct = hm.DSGA_transformation.DSGA(df_normal = metabric_n, df_tumour = metabric_t, threshold = True) #575 genes
 
 #do not threshold TCGA DcT, but match to the METABRIC DcT genes 
-tcga_dct = DSGA(df_normal = tcga_n, df_tumour =  tcga_t, threshold = False) #18406 genes
+tcga_dct = hm.DSGA_transformation.DSGA(df_normal = tcga_n, df_tumour =  tcga_t, threshold = False) #18406 genes
 gene_list = metabric_dct.columns
 tcga_dct_T = tcga_dct.T
 tcga_dct_thres = tcga_dct_T[gene_list] #575 genes
