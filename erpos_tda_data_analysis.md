@@ -1,13 +1,18 @@
 # Detecting hotspots in ER+ breast cancer using TDA
-The original datasets used in the analysis are publically available and described in the [main description](README.md). To demonstate the order of the scripts used in the analysis we will use example data.  
+The original datasets used in the analysis are publically available and described in the [main description](README.md). 
 
 ## Pre-process files for Disease Specific Genomic Analysis (DSGA)
-The DSGA method uses a dataset of tumour samples and a dataset of normal tissue samples as input. Run [1-match_genes_in_datasets.py](ERPBC-TDA-hotspot/analysis/1-match_genes_in_datasets.py) 
+The DSGA method uses a dataset of tumour samples and a dataset of normal tissue samples as input. Run [match_genes_in_datasets.py](ERPBC-TDA-hotspot/analysis/match_genes_in_datasets.py). In our analysis we compile the input pair of tumour and normal datasets seperately for the METABRIC discovery cohort and the TCGA validation cohort. The GTEX dataset of gene expression from healthy breast tissue is used as the normal samples. 
 
+The gene expression datasets are as follows:
++ METABRIC discovery dataset = 18930 genes for 1429 ER+ Breast Cancer (BC) patients
++ TCGA validation dataset = 19957 genes for 790 ER+ BC patients
++ GTEX normal dataset = 36043 genes for 169 healthy individuals
 
-#18930 genes, 1429 er+ bc patients
-tcga = "tcga/gene_expression.csv" #19957 genes, 790 er+ bc patients
-gtex = "gtex/gene_expression.csv" #36043 genes, 169 healthy patients
+After preproccessing for DSGA, the tumour and normal dataset pairs are: 
++ Discovery pair = 17903 genes
++ Validation pair = 18406 genes
+
 
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
