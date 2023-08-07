@@ -2,7 +2,7 @@
 The original datasets used in the analysis are publically available and described in the [main description](README.md). 
 
 ## Pre-process files for Disease Specific Genomic Analysis (DSGA)
-The DSGA method uses a dataset of tumour samples and a dataset of normal tissue samples as input. Run [match_genes_in_datasets.py](ERPBC-TDA-hotspot/analysis/match_genes_in_datasets.py). In our analysis we compile the input pair of tumour and normal datasets seperately for the METABRIC discovery cohort and the TCGA validation cohort. The GTEX dataset of gene expression from healthy breast tissue is used as the normal samples. 
+The DSGA method uses a dataset of tumour samples and a dataset of normal tissue samples as input. Run [match_genes_in_datasets.py](ERPBC-TDA-hotspot/analysis/match_genes_in_datasets.py) to handle missing data and match the genes features used in the tumour and normal datasets. In our analysis we compile the input pair of tumour and normal datasets seperately for the METABRIC discovery cohort and the TCGA validation cohort. The GTEX dataset of gene expression from healthy breast tissue is used as the normal samples. 
 
 The gene expression datasets are as follows:
 + METABRIC discovery dataset = 18930 genes for 1429 ER+ Breast Cancer (BC) patients
@@ -12,6 +12,13 @@ The gene expression datasets are as follows:
 After preproccessing for DSGA, the tumour and normal dataset pairs are: 
 + Discovery pair = 17903 genes
 + Validation pair = 18406 genes
+
+## Disease Specific Genomic Analysis (DSGA)
+We run [DSGA](ERPBC-TDA-hotspot/analysis/DSGA.py) to build the disease component (DcT) of the tumour dataset by comparing it against the healthy state model representing as the dataset of normal tissue. In the discovery dataset we simultaneously perform feature reduction. In the validation DcT dataset we skip independent feature reduction and instead retain the gene features kept in the discovery DcT dataset. 
+
+The output DcT gene expression datasets are: 
++ Discovery dataset (METABRIC) = 575 genes for 1429 ER+ Breast Cancer (BC) patients
++ Discovery dataset (TCGA) = 575 genes for 790 ER+ BC patients
 
 
 ### Code 
