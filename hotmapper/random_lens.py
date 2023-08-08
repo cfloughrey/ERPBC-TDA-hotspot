@@ -25,7 +25,7 @@ def Lens(data, nonzero_features = None, weights = None, feature_list = None, wei
         #create a list of corresponding weights for each feature
         weights = np.random.uniform(low=weight_range[0], high=weight_range[1], size=len(feature_list))
     
-    else:
+    if nonzero_features is None:
         nonzero_features = total_features
         
     
