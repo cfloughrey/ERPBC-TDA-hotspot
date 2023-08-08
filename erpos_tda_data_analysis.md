@@ -24,7 +24,12 @@ The output DcT gene expression datasets are:
 ## Searching for hotspots in the discovery dataset
 Run [hotspot_search.py](ERPBC-TDA-hotspot/analysis/hotspot_search.py) to search for a hotspot of patients experiencing relapse before 10 years. We search for a hotspot in Mapper graphs generated from the discovery METABRIC DcT dataset across a predefined range of parameter options. If a hotspot fitting the conditions is found for any combination of Mapper parameters, we investigate the survival outcome for the group of patients contained in the hotspot against the rest of the cohort using log rank tests. If a hotspot group exists that has significantly higher occurence of relapse, we save the settings used to generate the lens function so results can be replicated.
 
-## Build the Mapper graph
+## Build the Mapper graph - Discovery dataset
+Run [discovery_dataset_mapper_graph.py](ERPBC-TDA-hotspot/analysis/discovery_dataset_mapper_graph) to look at the results of the hotspot search. Using the METABRIC discovery DcT dataset, we construct and visualise the Mapper graph and the hotspot using the parameters identified during the algorithm search. 
+
+## Investigate the clinical features of the discovery dataset
+5. 'analysis/R/5-METABRIC_investigating_clinical_features.R' : run chi-square tests on clinical features of METABRIC to test if hotspot differs from neighbourhood
+
 
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
