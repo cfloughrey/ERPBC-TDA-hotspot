@@ -37,6 +37,10 @@ Investigate associations between the hotspot group and clinical features (e.g. P
 
 
 
+## Perform survival analysis on the validation hotspot group
+[validation_survival.R](ERPBC-TDA-hotspot/analysis/validation_survival.R) plots the kaplan-meier curve comparing 10-year relapse-free survival outcome for the hotspot group against the neighbourhood in the TCGA validation dataset.  
+
+
 ### Code 
 The code used for the analysis in the article is available in the 'analysis' folder. This is split between python and R scripts.
 1. 'analysis/python/1-match_genes_in_datasets.py': create tumour and normal datasets with matching genes for metabric and tcga using gtex
