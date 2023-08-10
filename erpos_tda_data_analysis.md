@@ -22,7 +22,7 @@ The output DcT gene expression datasets are:
 
 
 ## Searching for hotspots in the discovery dataset
-Run [hotspot_search.py](ERPBC-TDA-hotspot/analysis/hotspot_search.py) to search for a hotspot of patients experiencing relapse before 10 years. We search for a hotspot in Mapper graphs generated from the discovery METABRIC DcT dataset across a predefined range of parameter options. If a hotspot fitting the conditions is found for any combination of Mapper parameters, we investigate the survival outcome for the group of patients contained in the hotspot against the rest of the cohort using log rank tests. If a hotspot group exists that has significantly higher occurence of relapse, we save the settings used to generate the lens function so results can be replicated.
+Run [discovery_hotspot_search.py](ERPBC-TDA-hotspot/analysis/discovery_hotspot_search.py) to search for a hotspot of patients experiencing relapse before 10 years. We search for a hotspot in Mapper graphs generated from the discovery METABRIC DcT dataset across a predefined range of parameter options. If a hotspot fitting the conditions is found for any combination of Mapper parameters, we investigate the survival outcome for the group of patients contained in the hotspot against the rest of the cohort using log rank tests. If a hotspot group exists that has significantly higher occurence of relapse, we save the settings used to generate the lens function so results can be replicated.
 
 ## Build the Mapper graph - Discovery dataset
 Run [discovery_mapper_graph.py](ERPBC-TDA-hotspot/analysis/discovery_mapper_graph) to look at the results of the hotspot search. Using the METABRIC discovery DcT dataset, we construct and visualise the Mapper graph and the hotspot using the parameters identified during the algorithm search. 
@@ -35,6 +35,9 @@ Investigate associations between the hotspot group and clinical features (e.g. P
 
 ## Differential expression analysis 
 The scripts for differential expression analysis on the discovery and validation datasets are available on request. 
+
+## Searching for hotspots in the validation dataset
+In [validation_hotspot_search.R](ERPBC-TDA-hotspot/analysis/validation_discovery_survival.R) we search for hotspots in the validation set across the interval and overlap range, searching for patients experiencing event of death before 10 years. We keep the lens function constant, only considering the successful lens identified from the discovery dataset hotspot search. We compare the 10-year overall survival outcome for hotspots identified to select the final interval and overlap parameters. 
 
 ## Build the Mapper graph - Validation dataset
 Run [validation_mapper_graph.py](ERPBC-TDA-hotspot/analysis/validation_mapper_graph) to look at the results of the hotspot search on the TCGA validation dataset. We visualise the overall survival outcome in the Mapper graph. We also compare the distance from the TCGA nodes to the METABRIC hotspot group centroid. 
