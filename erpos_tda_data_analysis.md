@@ -25,10 +25,10 @@ The output DcT gene expression datasets are:
 Run [hotspot_search.py](ERPBC-TDA-hotspot/analysis/hotspot_search.py) to search for a hotspot of patients experiencing relapse before 10 years. We search for a hotspot in Mapper graphs generated from the discovery METABRIC DcT dataset across a predefined range of parameter options. If a hotspot fitting the conditions is found for any combination of Mapper parameters, we investigate the survival outcome for the group of patients contained in the hotspot against the rest of the cohort using log rank tests. If a hotspot group exists that has significantly higher occurence of relapse, we save the settings used to generate the lens function so results can be replicated.
 
 ## Build the Mapper graph - Discovery dataset
-Run [discovery_dataset_mapper_graph.py](ERPBC-TDA-hotspot/analysis/discovery_dataset_mapper_graph) to look at the results of the hotspot search. Using the METABRIC discovery DcT dataset, we construct and visualise the Mapper graph and the hotspot using the parameters identified during the algorithm search. 
+Run [discovery_mapper_graph.py](ERPBC-TDA-hotspot/analysis/discovery_mapper_graph) to look at the results of the hotspot search. Using the METABRIC discovery DcT dataset, we construct and visualise the Mapper graph and the hotspot using the parameters identified during the algorithm search. 
 
 ## Investigate the clinical features of the discovery dataset
-Investigate associations between the hotspot group and clinical features (e.g. PAM50 subtype) in the discovery dataset using [discovery_dataset_investigating_clinical_features.R](ERPBC-TDA-hotspot/analysis/discovery_dataset_investigating_clinical_features.R)
+Investigate associations between the hotspot group and clinical features (e.g. PAM50 subtype) in the discovery dataset using [discovery_investigating_clinical_features.R](ERPBC-TDA-hotspot/analysis/discovery_investigating_clinical_features.R)
 
 ## Perform survival analysis on the discovery hotspot group
 [discovery_survival.R](ERPBC-TDA-hotspot/analysis/discovery_survival.R) plots the kaplan-meier curve comparing 10-year relapse-free survival outcome for the hotspot group against the neighbourhood in the METABRIC discovery dataset.  
