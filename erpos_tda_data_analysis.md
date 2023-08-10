@@ -34,8 +34,10 @@ Investigate associations between the hotspot group and clinical features (e.g. P
 [discovery_survival.R](ERPBC-TDA-hotspot/analysis/discovery_survival.R) plots the kaplan-meier curve comparing 10-year relapse-free survival outcome for the hotspot group against the neighbourhood in the METABRIC discovery dataset.  
 
 ## Differential expression analysis 
+The scripts for differential expression analysis on the discovery and validation datasets are available on request. 
 
-
+## Build the Mapper graph - Validation dataset
+Run [validation_mapper_graph.py](ERPBC-TDA-hotspot/analysis/validation_mapper_graph) to look at the results of the hotspot search on the TCGA validation dataset. We visualise the overall survival outcome in the Mapper graph. We also compare the distance from the TCGA nodes to the METABRIC hotspot group centroid. 
 
 ## Perform survival analysis on the validation hotspot group
 [validation_survival.R](ERPBC-TDA-hotspot/analysis/validation_survival.R) plots the kaplan-meier curve comparing 10-year survival outcome for the hotspot group against the neighbourhood in the TCGA validation dataset.  
