@@ -38,7 +38,7 @@ Investigate associations between the hotspot group and clinical features (e.g. P
 
 
 ## Perform survival analysis on the validation hotspot group
-[validation_survival.R](ERPBC-TDA-hotspot/analysis/validation_survival.R) plots the kaplan-meier curve comparing 10-year relapse-free survival outcome for the hotspot group against the neighbourhood in the TCGA validation dataset.  
+[validation_survival.R](ERPBC-TDA-hotspot/analysis/validation_survival.R) plots the kaplan-meier curve comparing 10-year survival outcome for the hotspot group against the neighbourhood in the TCGA validation dataset.  
 
 
 
