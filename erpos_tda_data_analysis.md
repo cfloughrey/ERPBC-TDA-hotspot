@@ -28,7 +28,13 @@ Run [hotspot_search.py](ERPBC-TDA-hotspot/analysis/hotspot_search.py) to search 
 Run [discovery_dataset_mapper_graph.py](ERPBC-TDA-hotspot/analysis/discovery_dataset_mapper_graph) to look at the results of the hotspot search. Using the METABRIC discovery DcT dataset, we construct and visualise the Mapper graph and the hotspot using the parameters identified during the algorithm search. 
 
 ## Investigate the clinical features of the discovery dataset
-5. 'analysis/R/5-METABRIC_investigating_clinical_features.R' : run chi-square tests on clinical features of METABRIC to test if hotspot differs from neighbourhood
+Investigate associations between the hotspot group and clinical features (e.g. PAM50 subtype) in the discovery dataset using [discovery_dataset_investigating_clinical_features.R](ERPBC-TDA-hotspot/analysis/discovery_dataset_investigating_clinical_features.R)
+
+## Perform survival analysis on the discovery hotspot group
+[discovery_survival.R](ERPBC-TDA-hotspot/analysis/discovery_survival.R) plots the kaplan-meier curve comparing 10-year relapse-free survival outcome for the hotspot group against the neighbourhood in the METABRIC discovery dataset.  
+
+## Differential expression analysis 
+
 
 
 ### Code 
