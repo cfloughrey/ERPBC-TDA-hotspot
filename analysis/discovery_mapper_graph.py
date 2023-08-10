@@ -60,7 +60,7 @@ n = list(chain.from_iterable(hotspot_nodes))
 
 #visualise again but highlight the nodes in the graph identified as hotspots
 hm.visualisation.draw_graph(mapper_graph = mapper.graph, 
-          attribute_function = s, 
+          attribute_function = outcome, 
           samples_in_nodes = mapper.samples_in_nodes,
           size = 10, 
           style = 3, 
