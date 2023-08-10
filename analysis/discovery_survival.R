@@ -3,34 +3,34 @@ library(survival)
 
 
 #------------------------------------read in files---------------------------------------------#
-surv <- "metabric/10_year_survival.csv" #survival event & time censored to 10 years"
+rfs = "metabric/10_year_rfs.csv" #relapse free event & time censored to 10 years. 
 y <- "metabric/hotspot_labels.csv" #binary labels indiciating hotspot class
 
 #combine survival data and hotspot class for patients 
-surv$Hotspot <- y$Hotspot
+rfs$Hotspot <- y$Hotspot
 
 
 
 #-------------------------------kaplan-meier--------------------------------------------#
 #fit curves
-fit <- survfit(Surv(Time, Event) ~ Hotspot, data = surv)
+fit <- survfit(Surv(Time, Event) ~ Hotspot, data = rfs)
 
 #plot
 p <- ggsurvplot(fit, 
-                data = surv, 
+                data = rfs, 
                 pval = T,
                 mark.time = T,
                 xlab = "Months", 
-                ylab = "Overall survival probability",
+                ylab = "10-Year Relapse Free Survival",
                 censor = T,  
+                break.time.by = 24, 
                 risk.table = TRUE,
                 conf.int = TRUE,# label curves directly
                 legend.labs =  c("Neighbourhood","Hotspot")) # legend instead of direct label)
 p
 
-
 #summary of results
-survdiff(Surv(Time, Event) ~ Hotspot, data = surv)
+survdiff(Surv(Time, Event) ~ Hotspot, data = rfs)
 
 
 
