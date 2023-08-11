@@ -42,9 +42,12 @@ class Search():
         print("Building parameters and searching for hotspots")
         while count < self.runs:
             if signficance == False:
-                #generate a random lens from features
-                random_lens = linear_lens_combination.Lens(self.X, nonzero_features = parameters["non_zero_lens_features"])
-
+                if parameters["predefined_lens"] is None:
+                    #generate a random lens from features
+                    random_lens = linear_lens_combination.Lens(self.X, nonzero_features = parameters["non_zero_lens_features"])
+                else: 
+                    random_lens = parameters["predefined_lens"]
+                    
                 #build a grid of interval and overlap combinations
                 io_list = list(product(parameters["interval_list"], parameters["overlap_list"]))
 
