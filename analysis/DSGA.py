@@ -6,7 +6,7 @@ Created on Tue Mar 22 09:52:14 2022
 """
 
 
-from hotmapper as hm 
+import hotmapper as hm 
 import numpy as np
 import pandas as pd
 
