@@ -17,4 +17,4 @@ The datasets used are found at the following links:
 The code used in the article is available in the 'analysis' folder. The pipeline of analysis can be found in [Detecting hotspots in ER+ breast cancer using TDA](erpos_tda_data_analysis.md)
 
 ## hot-mapper
-The code to generate a Mapper graph and identify hotspots is available in the 'hotmapper' folder. For an example analysis see [toy demonstration](toy_demonstration.ipynb).
+The code to generate a Mapper graph and identify hotspots is available in the 'hotmapper' folder. For an example analysis see [toy example](toy_example.ipynb).
